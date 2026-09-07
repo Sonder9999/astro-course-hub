@@ -12,14 +12,17 @@ import {
 const getDynamicNavBarConfig = (): NavBarConfig => {
 	const links: NavBarLink[] = [];
 
-	// 首页（Bento Grid 课程仪表盘）
+	// 首页（通告与帖子）
 	links.push(LinkPresets.Home);
 
-	// 课程与培养方案菜单
+	// 课程索引（独立课程中心）
+	links.push(LinkPresets.Courses);
+
+	// 培养方案与课程体系
 	links.push({
-		name: "课程索引",
+		name: "培养方案",
 		url: "#",
-		icon: "material-symbols:school-outline",
+		icon: "material-symbols:calendar-clock-outline",
 		children: [
 			LinkPresets.Curriculum,
 			LinkPresets.Categories,
@@ -72,9 +75,14 @@ export const navBarSearchConfig: NavBarSearchConfig = {
 // ============================================================================
 export const LinkPresets: Record<string, NavBarLink> = {
 	Home: {
-		name: "课程导航",
+		name: "首页",
 		url: "/",
-		icon: "material-symbols:dashboard-customize-outline",
+		icon: "material-symbols:home-outline",
+	},
+	Courses: {
+		name: "课程索引",
+		url: "/courses/",
+		icon: "material-symbols:school-outline",
 	},
 	Curriculum: {
 		name: "培养方案地图",
