@@ -1,4 +1,4 @@
-﻿---
+---
 import CourseDashboard from "@/components/course/CourseDashboard.svelte";
 import { courseConfig, siteConfig } from "@/config";
 import MainGridLayout from "@/layouts/MainGridLayout.astro";
@@ -14,8 +14,6 @@ const heading = "课程索引";
       client:load
       courses={courses}
       semesters={courseConfig.semesters}
-      categories={courseConfig.categories}
-      featuredTags={courseConfig.featuredTags}
     />
   </div>
 </MainGridLayout>
