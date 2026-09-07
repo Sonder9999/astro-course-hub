@@ -37,7 +37,7 @@ const getDynamicNavBarConfig = (): NavBarConfig => {
 		children: [
 			LinkPresets.About,
 			{
-				name: "GitHub 仓库",
+				name: "GitHub",
 				url: "https://github.com/CuteLeaf/Firefly",
 				external: true,
 				icon: "fa7-brands:github",
