@@ -13,7 +13,8 @@ const sidebarStickyState: Record<
 // 检查当前页面是否为文章详情页
 const isCurrentPagePost = (): boolean =>
 	window.location.pathname.includes("/posts/") ||
-	window.location.pathname.includes("/post/");
+	window.location.pathname.includes("/post/") ||
+	window.location.pathname.includes("/courses/");
 
 // Grid 列类常量
 const GRID_COL_CLASSES = [

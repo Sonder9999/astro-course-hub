@@ -1,0 +1,21 @@
+---
+import CourseDashboard from "@/components/course/CourseDashboard.svelte";
+import { courseConfig, siteConfig } from "@/config";
+import MainGridLayout from "@/layouts/MainGridLayout.astro";
+import { getCourseListData } from "@/utils/course-utils";
+
+const courses = await getCourseListData();
+const heading = siteConfig.title;
+---
+
+<MainGridLayout title={siteConfig.title} description={siteConfig.description} heading={heading}>
+  <div class="mb-6 onload-animation">
+    <CourseDashboard
+      client:load
+      courses={courses}
+      semesters={courseConfig.semesters}
+      categories={courseConfig.categories}
+      featuredTags={courseConfig.featuredTags}
+    />
+  </div>
+</MainGridLayout>

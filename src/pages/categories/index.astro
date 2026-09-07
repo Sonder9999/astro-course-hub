@@ -1,22 +1,21 @@
 ---
 import { Icon } from "astro-icon/components";
-import I18nKey from "@/i18n/i18nKey";
-import { i18n } from "@/i18n/translation";
 import MainGridLayout from "@/layouts/MainGridLayout.astro";
-import { getCategoryList } from "@/utils/content-utils";
+import { getCourseCategories } from "@/utils/course-utils";
+import { url } from "@/utils/url-utils";
 
-const categories = await getCategoryList();
-const totalPosts = categories.reduce((sum, cat) => sum + cat.count, 0);
+const categories = await getCourseCategories();
+const totalCount = categories.reduce((sum, cat) => sum + cat.count, 0);
 ---
 
-<MainGridLayout title={i18n(I18nKey.categories)}>
+<MainGridLayout title="学科方向分类 - 课程索引">
     <!-- 页面标题 -->
-    <div class="card-base px-8 py-6 mb-4">
-        <div class="text-2xl font-bold text-(--primary) mb-2">
-            {i18n(I18nKey.categories)}
-        </div>
+    <div class="card-base px-8 py-6 mb-4 rounded-2xl border border-black/5 dark:border-white/5">
+        <h1 class="text-2xl font-bold text-(--primary) mb-2">
+            学科方向与课程分类
+        </h1>
         <p class="text-30 text-sm">
-            {i18n(I18nKey.allCategories)} · {totalPosts} {i18n(I18nKey.postsCount)}
+            共收录 {categories.length} 个学科方向 · {totalCount} 门课程
         </p>
     </div>
 
@@ -25,11 +24,11 @@ const totalPosts = categories.reduce((sum, cat) => sum + cat.count, 0);
         {
             categories.map((category, index) => (
                 <a
-                    href={category.url}
-                    class="card-base p-6 flex items-center gap-4 group onload-animation"
+                    href={url(`/archive/?category=${encodeURIComponent(category.name)}`)}
+                    class="card-base p-6 flex items-center gap-4 group onload-animation rounded-xl border border-black/5 dark:border-white/5 hover:border-(--primary)/30 transition-all hover:-translate-y-0.5"
                     style={`animation-delay: calc(var(--content-delay) + ${index * 50}ms);`}
                 >
-                    <div class="shrink-0 w-14 h-14 rounded-full bg-(--primary)/10 group-hover:bg-(--primary)/20 flex items-center justify-center transition-colors">
+                    <div class="shrink-0 w-14 h-14 rounded-xl bg-(--primary)/10 group-hover:bg-(--primary)/20 flex items-center justify-center transition-colors">
                         <Icon
                             name="material-symbols:folder-open"
                             class="text-3xl text-(--primary)"
@@ -39,14 +38,14 @@ const totalPosts = categories.reduce((sum, cat) => sum + cat.count, 0);
                         <h2 class="text-lg font-bold text-90 truncate group-hover:text-(--primary) transition-colors" title={category.name}>
                             {category.name}
                         </h2>
-                        <p class="text-sm text-30 mt-1 group-hover:text-(--primary)/60 transition-colors">
-                            {category.count} {i18n(I18nKey.postsCount)}
+                        <p class="text-xs text-30 mt-1 group-hover:text-(--primary)/70 transition-colors">
+                            {category.count} 门课程 · 点击查看大纲
                         </p>
                     </div>
                     <div class="shrink-0">
                         <Icon
                             name="material-symbols:chevron-right-rounded"
-                            class="text-2xl text-30 group-hover:text-(--primary) transition-colors "
+                            class="text-2xl text-30 group-hover:text-(--primary) group-hover:translate-x-1 transition-all"
                         />
                     </div>
                 </a>
@@ -57,12 +56,12 @@ const totalPosts = categories.reduce((sum, cat) => sum + cat.count, 0);
     <!-- 空状态 -->
     {
         categories.length === 0 && (
-            <div class="card-base px-8 py-12 text-center">
+            <div class="card-base px-8 py-12 text-center rounded-2xl">
                 <Icon
                     name="material-symbols:folder-off"
                     class="text-5xl text-30 mx-auto mb-4"
                 />
-                <p class="text-30">{i18n(I18nKey.noData)}</p>
+                <p class="text-30">暂无学科分类数据</p>
             </div>
         )
     }

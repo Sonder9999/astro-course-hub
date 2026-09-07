@@ -3,6 +3,7 @@ import I18nKey from "@i18n/i18nKey";
 import { i18n } from "@i18n/translation";
 import { Icon } from "astro-icon/components";
 import { getCategoryList, getSortedPostsList } from "@/utils/content-utils";
+import { getCourseCategories, getSortedCourses } from "@/utils/course-utils";
 import { url } from "@/utils/url-utils";
 
 interface Props {
@@ -11,8 +12,21 @@ interface Props {
 
 const { currentPostCategory } = Astro.props as Props;
 
-const categories = await getCategoryList();
-const totalPosts = (await getSortedPostsList()).length;
+const courseCategories = await getCourseCategories();
+const courseList = await getSortedCourses();
+
+const categories =
+	courseCategories.length > 0
+		? courseCategories.map((c) => ({
+				name: c.name,
+				count: c.count,
+				url: url(`/archive/?category=${encodeURIComponent(c.name)}`),
+			}))
+		: await getCategoryList();
+const totalPosts =
+	courseList.length > 0
+		? courseList.length
+		: (await getSortedPostsList()).length;
 const homeUrl = url("/");
 const archiveUrl = url("/archive/");
 

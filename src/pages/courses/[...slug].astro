@@ -1,0 +1,260 @@
+---
+import { render } from "astro:content";
+import Markdown from "@components/common/Markdown.astro";
+import KatexManager from "@components/features/KatexManager.astro";
+import MainGridLayout from "@layouts/MainGridLayout.astro";
+import { getRelatedCourses, getSortedCourses } from "@/utils/course-utils";
+import { courseConfig } from "@/config/courseConfig";
+import { siteConfig } from "@/config/siteConfig";
+import { removeFileExtension, url } from "@/utils/url-utils";
+
+export async function getStaticPaths() {
+	const courses = await getSortedCourses();
+	return courses.map((course) => {
+		const slug = removeFileExtension(course.id);
+		return {
+			params: { slug },
+			props: { course },
+		};
+	});
+}
+
+const { course } = Astro.props;
+const { Content, headings } = await render(course);
+const relatedCourses = await getRelatedCourses(course, 4);
+
+// 学期颜色辅助
+const semConfig = courseConfig.semesters.find(
+	(s) => s.name === course.data.semester,
+);
+const semesterColor =
+	semConfig?.color ||
+	"bg-neutral-500/10 text-neutral-600 dark:text-neutral-300 border-neutral-500/20";
+---
+
+<MainGridLayout
+  title={`${course.data.title} - ${siteConfig.title}`}
+  description={course.data.description || course.data.title}
+  postSlug={course.id}
+  headings={headings}
+>
+  <!-- KaTeX 数学公式渲染管理器 -->
+  <KatexManager slot="head" />
+
+  <div class="flex flex-col gap-6 w-full">
+    <!-- 课程头部大卡片 (Course Hero Header Card) -->
+    <div class="card-base p-6 md:p-8 rounded-2xl flex flex-col gap-5 border border-black/5 dark:border-white/5 onload-animation relative overflow-hidden">
+      <!-- 装饰水印 -->
+      <div class="absolute -right-8 -bottom-8 w-40 h-40 rounded-full bg-(--primary)/5 pointer-events-none"></div>
+
+      <!-- 面包屑导航 -->
+      <nav class="flex items-center gap-2 text-xs text-black/50 dark:text-white/50 flex-wrap" aria-label="Breadcrumb">
+        <a href={url("/")} class="hover:text-(--primary) transition-colors flex items-center gap-1">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+          </svg>
+          <span>首页</span>
+        </a>
+        <span>/</span>
+        <a href={url("/archive/")} class="hover:text-(--primary) transition-colors">课程索引</a>
+        <span>/</span>
+        <span class="text-black/80 dark:text-white/80 font-medium">{course.data.semester}</span>
+        <span>/</span>
+        <span class="text-(--primary) font-semibold truncate max-w-xs">{course.data.title}</span>
+      </nav>
+
+      <!-- 顶部标签徽章行 -->
+      <div class="flex items-center justify-between gap-3 flex-wrap">
+        <div class="flex items-center gap-2 flex-wrap text-xs">
+          {course.data.code && (
+            <span class="font-mono font-bold px-2.5 py-1 rounded-lg bg-black/6 dark:bg-white/10 text-black/85 dark:text-white/85">
+              {course.data.code}
+            </span>
+          )}
+          <span class={`px-2.5 py-1 rounded-lg font-semibold border ${semesterColor}`}>
+            {course.data.semester}
+          </span>
+          <span class="px-2.5 py-1 rounded-lg bg-black/4 dark:bg-white/5 text-black/70 dark:text-white/70 font-medium">
+            {course.data.category}
+          </span>
+        </div>
+
+        {course.data.difficulty && (
+          <div class="flex items-center gap-1 text-amber-500 font-semibold text-sm">
+            <svg class="w-4 h-4 fill-current" viewBox="0 0 20 20">
+              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+            </svg>
+            <span>难度指数: {course.data.difficulty} / 5.0</span>
+          </div>
+        )}
+      </div>
+
+      <!-- 课程主标题与英文名 (Pagefind 核心索引字段) -->
+      <div>
+        <h1
+          data-pagefind-body
+          data-pagefind-weight="10"
+          data-pagefind-meta="title"
+          class="text-2xl md:text-3.5xl font-black text-black/95 dark:text-white/95 leading-tight mb-2"
+        >
+          {course.data.title}
+        </h1>
+        {course.data.titleEn && (
+          <div class="text-sm md:text-base text-black/50 dark:text-white/50 font-medium">
+            {course.data.titleEn}
+          </div>
+        )}
+      </div>
+
+      <!-- 课程核心参数网格 -->
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 p-3.5 rounded-xl bg-black/3 dark:bg-white/4 text-xs">
+        <div>
+          <span class="text-black/45 dark:text-white/45 block mb-0.5">课程学分</span>
+          <span class="font-bold text-black/85 dark:text-white/85 text-sm">{course.data.credits ?? "-"} 学分</span>
+        </div>
+        <div>
+          <span class="text-black/45 dark:text-white/45 block mb-0.5">授课学时</span>
+          <span class="font-bold text-black/85 dark:text-white/85 text-sm">{course.data.hours ?? "-"} 学时</span>
+        </div>
+        <div>
+          <span class="text-black/45 dark:text-white/45 block mb-0.5">推荐主讲</span>
+          <span class="font-bold text-black/85 dark:text-white/85 text-sm truncate block">
+            {course.data.instructors?.length ? course.data.instructors.join(", ") : "教研团队"}
+          </span>
+        </div>
+        <div>
+          <span class="text-black/45 dark:text-white/45 block mb-0.5">先修课程</span>
+          <span class="font-bold text-black/85 dark:text-white/85 text-sm truncate block">
+            {course.data.prerequisites?.length ? course.data.prerequisites.join(", ") : "无特殊限制"}
+          </span>
+        </div>
+      </div>
+
+      <!-- 课程简要速览 -->
+      {course.data.description && (
+        <p class="text-sm text-black/75 dark:text-white/75 leading-relaxed bg-(--primary)/5 p-3 rounded-xl border-l-3 border-(--primary)">
+          {course.data.description}
+        </p>
+      )}
+
+      <!-- 课程标签与外链操作条 -->
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2 border-t border-black/5 dark:border-white/5">
+        <!-- 标签 -->
+        <div class="flex items-center gap-1.5 flex-wrap">
+          {course.data.tags.map((tag) => (
+            <a
+              href={url(`/tags/?tag=${encodeURIComponent(tag)}`)}
+              class="text-xs px-2.5 py-1 rounded-md bg-black/5 dark:bg-white/5 text-black/65 dark:text-white/65 hover:text-(--primary) hover:bg-(--primary)/10 transition-colors"
+            >
+              #{tag}
+            </a>
+          ))}
+        </div>
+
+        <!-- 外部链接与仓库操作按钮 -->
+        <div class="flex items-center gap-2 flex-wrap">
+          {course.data.repoUrl && (
+            <a
+              href={course.data.repoUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              class="text-xs font-semibold px-3.5 py-1.5 rounded-lg bg-black text-white dark:bg-white dark:text-black hover:opacity-90 transition-opacity flex items-center gap-1.5 shadow-sm"
+            >
+              <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
+              </svg>
+              <span>课程资料仓库</span>
+            </a>
+          )}
+
+          {course.data.externalLinks && course.data.externalLinks.map((link) => (
+            <a
+              href={link.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              class="text-xs px-3 py-1.5 rounded-lg bg-(--primary)/10 text-(--primary) hover:bg-(--primary) hover:text-white font-medium transition-all flex items-center gap-1"
+            >
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+              </svg>
+              <span>{link.name}</span>
+            </a>
+          ))}
+        </div>
+      </div>
+    </div>
+
+    <!-- 课程正文 Markdown 渲染容器 (带 Pagefind 索引属性) -->
+    <div class="card-base p-6 md:p-9 rounded-2xl relative w-full border border-black/5 dark:border-white/5">
+      <div data-pagefind-body>
+        <Markdown class="mb-6 markdown-content onload-animation">
+          <Content />
+        </Markdown>
+      </div>
+
+      <!-- 课程贡献引导横幅 -->
+      <div class="mt-8 p-5 rounded-xl bg-black/3 dark:bg-white/4 border border-black/5 dark:border-white/5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-lg bg-(--primary)/15 text-(--primary) flex items-center justify-center shrink-0">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+            </svg>
+          </div>
+          <div>
+            <div class="text-sm font-bold text-black/90 dark:text-white/90">有更优质的试卷、笔记或实验攻略？</div>
+            <div class="text-xs text-black/50 dark:text-white/50">欢迎向本开源项目提交 Pull Request 或 Issue，与学弟学妹们薪火相传！</div>
+          </div>
+        </div>
+        <a
+          href={url("/about/#贡献指南")}
+          class="text-xs px-4 py-2 rounded-xl bg-(--primary) text-white font-medium hover:opacity-90 transition-opacity shrink-0 shadow-sm"
+        >
+          查看贡献指南
+        </a>
+      </div>
+    </div>
+
+    <!-- 同学期 / 推荐相关课程 -->
+    {relatedCourses.length > 0 && (
+      <div class="card-base p-6 rounded-2xl flex flex-col gap-4 border border-black/5 dark:border-white/5">
+        <div class="flex items-center justify-between">
+          <h2 class="text-base font-bold text-black/90 dark:text-white/90 flex items-center gap-2">
+            <svg class="w-4 h-4 text-(--primary)" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+            <span>同方向 / 关联课程推荐</span>
+          </h2>
+          <a href={url("/archive/")} class="text-xs text-(--primary) hover:underline">
+            查看全部课程大纲 &rarr;
+          </a>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {relatedCourses.map((rel) => {
+            const relSlug = removeFileExtension(rel.id);
+            return (
+              <a
+                href={url(`/courses/${relSlug}/`)}
+                class="p-3.5 rounded-xl bg-black/2 dark:bg-white/3 hover:bg-(--primary)/8 transition-all border border-black/4 dark:border-white/5 flex flex-col gap-1.5 group"
+              >
+                <div class="flex items-center justify-between gap-2 text-xs">
+                  <span class="font-semibold text-black/90 dark:text-white/90 group-hover:text-(--primary) transition-colors truncate">
+                    {rel.data.title}
+                  </span>
+                  <span class="text-[11px] px-1.5 py-0.2 rounded bg-black/5 dark:bg-white/10 text-black/60 dark:text-white/60 shrink-0">
+                    {rel.data.semester}
+                  </span>
+                </div>
+                {rel.data.description && (
+                  <div class="text-xs text-black/50 dark:text-white/50 line-clamp-1">
+                    {rel.data.description}
+                  </div>
+                )}
+              </a>
+            );
+          })}
+        </div>
+      </div>
+    )}
+  </div>
+</MainGridLayout>

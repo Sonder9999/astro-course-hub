@@ -1,42 +1,37 @@
 ---
 import { Icon } from "astro-icon/components";
-import I18nKey from "@/i18n/i18nKey";
-import { i18n } from "@/i18n/translation";
 import MainGridLayout from "@/layouts/MainGridLayout.astro";
-import { getTagList } from "@/utils/content-utils";
-import { getTagUrl } from "@/utils/url-utils";
+import { getCourseTags } from "@/utils/course-utils";
+import { url } from "@/utils/url-utils";
 
-const tags = await getTagList();
-
-// Top 10 标签排行
+const tags = await getCourseTags();
 const topTags = [...tags].sort((a, b) => b.count - a.count).slice(0, 10);
 const topMaxCount = topTags.length > 0 ? topTags[0].count : 1;
 ---
 
-<MainGridLayout title={i18n(I18nKey.tags)} description={i18n(I18nKey.allTags)}>
+<MainGridLayout title="课程标签索引 - 课程导航" description="全部课程特性标签索引">
     <!-- 页面标题 -->
-    <div class="card-base px-8 py-6 mb-4">
-        <div class="text-2xl font-bold text-(--primary) mb-2">
-            {i18n(I18nKey.tags)}
-        </div>
+    <div class="card-base px-8 py-6 mb-4 rounded-2xl border border-black/5 dark:border-white/5">
+        <h1 class="text-2xl font-bold text-(--primary) mb-2">
+            课程特性标签云
+        </h1>
         <p class="text-30 text-sm">
-            {i18n(I18nKey.allTags)} · {tags.length} {i18n(I18nKey.tagsCount)}
+            共收录 {tags.length} 个特性标签（必修、实验、大作业、考研核心等）
         </p>
     </div>
 
-    <div class="flex w-full rounded-(--radius-large) overflow-hidden relative min-h-32">
-        <div class="card-base z-10 px-9 py-6 relative w-full">
+    <div class="flex w-full rounded-(--radius-large) overflow-hidden relative min-h-32 mb-4">
+        <div class="card-base z-10 px-8 py-6 relative w-full rounded-2xl border border-black/5 dark:border-white/5">
             <div class="flex flex-wrap gap-2.5">
                 {tags.map((t) => (
-                    <a href={getTagUrl(t.name)}
+                    <a href={url(`/archive/?tag=${encodeURIComponent(t.name.trim())}`)}
                        class="tag-item group inline-flex items-center gap-1.5
-                              text-sm font-medium px-3 py-1.5 transition-all duration-200"
+                              text-sm font-medium px-3 py-1.5 transition-all duration-200 rounded-lg bg-black/5 dark:bg-white/5 hover:bg-(--primary) hover:text-white"
                     >
                         <span>
-                            {t.name.trim()}
+                            #{t.name.trim()}
                         </span>
-                        <span class="tag-count-badge text-xs font-bold px-1.5
-                                     min-w-[1.5rem] text-center">
+                        <span class="text-xs font-bold px-1.5 py-0.2 rounded-full bg-black/8 dark:bg-white/10 group-hover:bg-white/20 text-center">
                             {t.count}
                         </span>
                     </a>
@@ -48,25 +43,26 @@ const topMaxCount = topTags.length > 0 ? topTags[0].count : 1;
     <!-- 空状态 -->
     {
         tags.length === 0 && (
-            <div class="card-base px-8 py-12 text-center">
+            <div class="card-base px-8 py-12 text-center rounded-2xl">
                 <Icon
                     name="material-symbols:tag-rounded"
                     class="text-5xl text-30 mx-auto mb-4"
                 />
-                <p class="text-30">{i18n(I18nKey.noData)}</p>
+                <p class="text-30">暂无课程标签</p>
             </div>
         )
     }
 
     <!-- Top 10 标签排行 -->
     {topTags.length > 0 && (
-        <div class="card-base px-8 py-6 mt-4">
-            <h2 class="text-lg font-bold text-75 mb-4">
-                Top 10
+        <div class="card-base px-8 py-6 rounded-2xl border border-black/5 dark:border-white/5">
+            <h2 class="text-lg font-bold text-75 mb-4 flex items-center gap-2">
+                <Icon name="material-symbols:leaderboard-outline" class="text-xl text-(--primary)" />
+                <span>热门标签分布 TOP 10</span>
             </h2>
             <div class="flex flex-col gap-3">
                 {topTags.map((t, i) => (
-                    <a href={getTagUrl(t.name)}
+                    <a href={url(`/archive/?tag=${encodeURIComponent(t.name.trim())}`)}
                        class="flex items-center gap-3 group hover:bg-(--btn-card-bg-hover) rounded-lg px-3 py-2 -mx-3 transition-colors"
                     >
                         <span class="text-sm font-bold text-(--primary) w-5 text-right shrink-0">
@@ -78,7 +74,7 @@ const topMaxCount = topTags.length > 0 ? topTags[0].count : 1;
                                     #{t.name.trim()}
                                 </span>
                                 <span class="text-xs text-(--primary) ml-2 shrink-0">
-                                    {t.count} {i18n(I18nKey.postsCount)}
+                                    {t.count} 门课程
                                 </span>
                             </div>
                             <div class="h-2 rounded-full bg-(--primary)/10 overflow-hidden">

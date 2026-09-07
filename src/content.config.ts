@@ -35,10 +35,86 @@ type DynamicData = {
 	location: string;
 };
 
+type ExternalLink = {
+	name: string;
+	url: string;
+	icon?: string;
+};
+
+type CourseData = {
+	title: string;
+	titleEn?: string;
+	code?: string;
+	semester: string;
+	category: string;
+	tags: string[];
+	description: string;
+	credits?: number;
+	hours?: number;
+	instructors: string[];
+	prerequisites: string[];
+	difficulty?: number;
+	repoUrl: string;
+	externalLinks: ExternalLink[];
+	icon: string;
+	image: string;
+	order?: number;
+	draft: boolean;
+	published?: Date;
+	updated?: Date;
+	comment: boolean;
+	prevTitle?: string;
+	prevSlug?: string;
+	nextTitle?: string;
+	nextSlug?: string;
+};
+
 type ContentCollection<T> = CollectionConfig<
 	ZodType<T>,
 	ReturnType<typeof glob>
 >;
+
+const coursesCollection: ContentCollection<CourseData> = defineCollection({
+	loader: glob({ pattern: "**/*.{md,mdx}", base: "./src/content/courses" }),
+	schema: z.object({
+		title: z.string(),
+		titleEn: z.string().optional().default(""),
+		code: z.string().optional().default(""),
+		semester: z.string(),
+		category: z.string(),
+		tags: z.array(z.string()).optional().default([]),
+		description: z.string().optional().default(""),
+		credits: z.number().optional().default(3),
+		hours: z.number().optional().default(48),
+		instructors: z.array(z.string()).optional().default([]),
+		prerequisites: z.array(z.string()).optional().default([]),
+		difficulty: z.number().optional().default(3),
+		repoUrl: z.string().optional().default(""),
+		externalLinks: z
+			.array(
+				z.object({
+					name: z.string(),
+					url: z.string(),
+					icon: z.string().optional(),
+				}),
+			)
+			.optional()
+			.default([]),
+		icon: z.string().optional().default("material-symbols:book-2-outline"),
+		image: z.string().optional().default(""),
+		order: z.number().optional().default(100),
+		draft: z.boolean().optional().default(false),
+		published: z.date().optional(),
+		updated: z.date().optional(),
+		comment: z.boolean().optional().default(true),
+
+		/* For internal navigation use */
+		prevTitle: z.string().optional().default(""),
+		prevSlug: z.string().optional().default(""),
+		nextTitle: z.string().optional().default(""),
+		nextSlug: z.string().optional().default(""),
+	}),
+});
 
 const postsCollection: ContentCollection<PostData> = defineCollection({
 	loader: glob({ pattern: "**/*.{md,mdx}", base: "./src/content/posts" }),
@@ -87,10 +163,12 @@ const dynamicCollection: ContentCollection<DynamicData> = defineCollection({
 });
 
 export const collections: {
+	courses: typeof coursesCollection;
 	dynamic: typeof dynamicCollection;
 	posts: typeof postsCollection;
 	spec: typeof specCollection;
 } = {
+	courses: coursesCollection,
 	dynamic: dynamicCollection,
 	posts: postsCollection,
 	spec: specCollection,
