@@ -1,12 +1,6 @@
 ---
-import { Icon } from "astro-icon/components";
-import I18nKey from "@/i18n/i18nKey";
-import { i18n } from "@/i18n/translation";
-import MainGridLayout from "@/layouts/MainGridLayout.astro";
-import { getCategoryList } from "@/utils/content-utils";
-
-const categories = await getCategoryList();
-const totalPosts = categories.reduce((sum, cat) => sum + cat.count, 0);
+// 页面暂不显示，隐藏
+return Astro.redirect("/404/");
 ---
 
 <MainGridLayout title={i18n(I18nKey.categories)} description={i18n(I18nKey.allCategories)}>

@@ -18,14 +18,6 @@ const getDynamicNavBarConfig = (): NavBarConfig => {
 	// 课程索引（独立课程中心）
 	links.push(LinkPresets.Courses);
 
-	// 文章归档与分类
-	links.push({
-		name: "归档",
-		url: "/archive/",
-		icon: "material-symbols:archive-outline",
-		children: [LinkPresets.Archive, LinkPresets.Categories, LinkPresets.Tags],
-	});
-
 	// 兄弟院校开源群星录
 	links.push(LinkPresets.Friends);
 

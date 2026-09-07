@@ -1,16 +1,6 @@
 ---
-import { Icon } from "astro-icon/components";
-import I18nKey from "@/i18n/i18nKey";
-import { i18n } from "@/i18n/translation";
-import MainGridLayout from "@/layouts/MainGridLayout.astro";
-import { getTagList } from "@/utils/content-utils";
-import { getTagUrl } from "@/utils/url-utils";
-
-const tags = await getTagList();
-
-// Top 10 标签排行
-const topTags = [...tags].sort((a, b) => b.count - a.count).slice(0, 10);
-const topMaxCount = topTags.length > 0 ? topTags[0].count : 1;
+// 页面暂不显示，隐藏
+return Astro.redirect("/404/");
 ---
 
 <MainGridLayout title={i18n(I18nKey.tags)} description={i18n(I18nKey.allTags)}>
