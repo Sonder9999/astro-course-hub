@@ -15,37 +15,32 @@ const getDynamicNavBarConfig = (): NavBarConfig => {
 	// 首页（通告与帖子）
 	links.push(LinkPresets.Home);
 
-	// 课程索引（独立课程中心）
+	// 课程（独立课程中心）
 	links.push(LinkPresets.Courses);
 
-	// 兄弟院校开源群星录
-	links.push(LinkPresets.Friends);
+	// 社交及其子菜单（友链与留言在同一个折叠内）
+	links.push({
+		name: "社交",
+		url: "#",
+		icon: "material-symbols:group",
+		children: [LinkPresets.Friends, LinkPresets.Guestbook],
+	});
 
 	// 书签与学习资源导航（如果开启）
 	links.push(LinkPresets.Booknav);
 
-	// 交流与反馈
-	links.push(LinkPresets.Guestbook);
-
-	// 关于与贡献指南
-	links.push(LinkPresets.About);
-
-	// 开源仓库与链接
+	// 关于与贡献（下拉展开关于本站与 GitHub 仓库）
 	links.push({
-		name: "开源项目",
+		name: "关于与贡献",
 		url: "#",
-		icon: "material-symbols:code-blocks-outline",
+		icon: "material-symbols:info-outline",
 		children: [
+			LinkPresets.About,
 			{
 				name: "GitHub 仓库",
-				url: "https://github.com/example-univ/course-resources",
+				url: "https://github.com/CuteLeaf/Firefly",
 				external: true,
 				icon: "fa7-brands:github",
-			},
-			{
-				name: "贡献指南",
-				url: "/about/#贡献指南",
-				icon: "material-symbols:volunteer-activism-outline",
 			},
 		],
 	});
@@ -59,7 +54,7 @@ export const navBarSearchConfig: NavBarSearchConfig = {
 };
 
 // ============================================================================
-// 链接预设 - 高校课程资源导航站预设
+// 链接预设 - 站点导航预设
 // ============================================================================
 export const LinkPresets: Record<string, NavBarLink> = {
 	Home: {
@@ -68,7 +63,7 @@ export const LinkPresets: Record<string, NavBarLink> = {
 		icon: "material-symbols:home-outline",
 	},
 	Courses: {
-		name: "课程索引",
+		name: "课程",
 		url: "/courses/",
 		icon: "material-symbols:school-outline",
 	},
@@ -88,10 +83,16 @@ export const LinkPresets: Record<string, NavBarLink> = {
 		icon: "material-symbols:label-outline",
 	},
 	Friends: {
-		name: "兄弟院校",
+		name: "友链",
 		url: "/friends/",
-		icon: "material-symbols:hub-outline",
+		icon: "material-symbols:link-2-rounded",
 		pageKey: "friends",
+	},
+	Guestbook: {
+		name: "留言",
+		url: "/guestbook/",
+		icon: "material-symbols:chat",
+		pageKey: "guestbook",
 	},
 	Booknav: {
 		name: "资源导航",
@@ -99,16 +100,10 @@ export const LinkPresets: Record<string, NavBarLink> = {
 		icon: "material-symbols:bookmarks-outline",
 		pageKey: "booknav",
 	},
-	Guestbook: {
-		name: "课程问答",
-		url: "/guestbook/",
-		icon: "material-symbols:forum-outline",
-		pageKey: "guestbook",
-	},
 	About: {
-		name: "关于与贡献",
+		name: "关于本站",
 		url: "/about/",
-		icon: "material-symbols:info-outline",
+		icon: "material-symbols:person",
 	},
 };
 
