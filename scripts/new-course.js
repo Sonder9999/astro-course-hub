@@ -21,9 +21,9 @@ Usage: pnpm new-course -- <CourseName> [semester] [category]`);
 	process.exit(1);
 }
 
-let courseTitle = args[0];
-let semester = args[1] || "大一上";
-let category = args[2] || "专业核心课";
+const courseTitle = args[0];
+const semester = args[1] || "大一上";
+const category = args[2] || "专业核心课";
 
 let fileName = courseTitle;
 const fileExtensionRegex = /\.(md|mdx)$/i;

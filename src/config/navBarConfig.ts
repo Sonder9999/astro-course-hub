@@ -18,16 +18,12 @@ const getDynamicNavBarConfig = (): NavBarConfig => {
 	// 课程索引（独立课程中心）
 	links.push(LinkPresets.Courses);
 
-	// 培养方案与课程体系
+	// 文章归档与分类
 	links.push({
-		name: "培养方案",
-		url: "#",
-		icon: "material-symbols:calendar-clock-outline",
-		children: [
-			LinkPresets.Curriculum,
-			LinkPresets.Categories,
-			LinkPresets.Tags,
-		],
+		name: "归档",
+		url: "/archive/",
+		icon: "material-symbols:archive-outline",
+		children: [LinkPresets.Archive, LinkPresets.Categories, LinkPresets.Tags],
 	});
 
 	// 兄弟院校开源群星录
@@ -84,18 +80,18 @@ export const LinkPresets: Record<string, NavBarLink> = {
 		url: "/courses/",
 		icon: "material-symbols:school-outline",
 	},
-	Curriculum: {
-		name: "培养方案地图",
+	Archive: {
+		name: "文章归档",
 		url: "/archive/",
-		icon: "material-symbols:calendar-clock-outline",
+		icon: "material-symbols:archive-outline",
 	},
 	Categories: {
-		name: "学科方向",
+		name: "全部分类",
 		url: "/categories/",
 		icon: "material-symbols:category-outline",
 	},
 	Tags: {
-		name: "课程标签",
+		name: "全部标签",
 		url: "/tags/",
 		icon: "material-symbols:label-outline",
 	},

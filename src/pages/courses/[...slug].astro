@@ -3,9 +3,9 @@ import { render } from "astro:content";
 import Markdown from "@components/common/Markdown.astro";
 import KatexManager from "@components/features/KatexManager.astro";
 import MainGridLayout from "@layouts/MainGridLayout.astro";
-import { getRelatedCourses, getSortedCourses } from "@/utils/course-utils";
 import { courseConfig } from "@/config/courseConfig";
 import { siteConfig } from "@/config/siteConfig";
+import { getRelatedCourses, getSortedCourses } from "@/utils/course-utils";
 import { removeFileExtension, url } from "@/utils/url-utils";
 
 export async function getStaticPaths() {

@@ -1,8 +1,10 @@
 ---
-import CurriculumPanel from "@components/controls/CurriculumPanel.astro";
+import ArchivePanel from "@components/controls/ArchivePanel.astro";
+import I18nKey from "@i18n/i18nKey";
+import { i18n } from "@i18n/translation";
 import MainGridLayout from "@layouts/MainGridLayout.astro";
 ---
 
-<MainGridLayout title="培养方案与课程全景地图 - 课程索引">
-  <CurriculumPanel />
+<MainGridLayout title={i18n(I18nKey.archive)}>
+  <ArchivePanel />
 </MainGridLayout>
