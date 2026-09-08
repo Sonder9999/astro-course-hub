@@ -57,6 +57,7 @@ function initialActive(majorName: string): {
       data-major-name=""
       data-active={initialActive("").active ? "" : undefined}
       aria-label="全部课程"
+      draggable="false"
     >
       <Icon name="material-symbols:school-outline" class="text-lg" />
       <span class="font-medium">全部课程</span>
@@ -66,9 +67,18 @@ function initialActive(majorName: string): {
     <div class="category-divider shrink-0"></div>
 
     <!-- 专业滚动区 -->
-    <div class="scroll-area relative">
+    <div class="scroll-area relative flex items-center">
       <div class="scroll-fade scroll-fade-left" aria-hidden="true"></div>
-      <div class="category-scroll flex gap-2 overflow-x-auto">
+      <button
+        type="button"
+        class="category-nav-btn category-nav-left"
+        aria-label="向左滚动"
+        tabindex="-1"
+      >
+        <Icon name="material-symbols:chevron-left" class="text-xl" />
+      </button>
+
+      <div class="category-scroll flex gap-2 overflow-x-auto w-full">
         {
           majors.map((m) => {
             const active = initialActive(m.name);
@@ -76,11 +86,12 @@ function initialActive(majorName: string): {
             return (
               <a
                 href={majorUrl}
-                class="category-pill focus-ring-inset text-sm px-4 py-1.5 whitespace-nowrap
+                class="category-pill focus-ring-inset text-sm px-4 py-1.5 whitespace-nowrap shrink-0
                        transition-colors duration-150 ease-out flex items-center justify-center"
                 data-major-name={m.name}
                 data-active={active.active ? "" : undefined}
                 data-soft-active={active.soft ? "" : undefined}
+                draggable="false"
               >
                 {m.name}
                 <span class="pill-count">{m.count}</span>
@@ -89,6 +100,15 @@ function initialActive(majorName: string): {
           })
         }
       </div>
+
+      <button
+        type="button"
+        class="category-nav-btn category-nav-right"
+        aria-label="向右滚动"
+        tabindex="-1"
+      >
+        <Icon name="material-symbols:chevron-right" class="text-xl" />
+      </button>
       <div class="scroll-fade scroll-fade-right" aria-hidden="true"></div>
     </div>
   </div>
@@ -100,6 +120,8 @@ function initialActive(majorName: string): {
   }
   .category-bar {
     margin-bottom: 1rem;
+    user-select: none;
+    -webkit-user-select: none;
   }
   .category-divider {
     width: 1px;
@@ -112,36 +134,99 @@ function initialActive(majorName: string): {
     min-width: 0;
     position: relative;
   }
+
+  /* 悬浮微动翻页按钮 */
+  .category-nav-btn {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 1.85rem;
+    height: 1.85rem;
+    border-radius: 9999px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: color-mix(in srgb, var(--card-bg) 88%, transparent);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid color-mix(in srgb, var(--btn-content) 15%, transparent);
+    color: var(--btn-content);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 220ms cubic-bezier(0.4, 0, 0.2, 1),
+                transform 150ms cubic-bezier(0.4, 0, 0.2, 1),
+                background-color 150ms,
+                color 150ms;
+    z-index: 10;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+  .category-nav-btn[data-visible] {
+    opacity: 1;
+    pointer-events: auto;
+  }
+  .category-nav-btn:hover {
+    background: var(--primary);
+    color: #fff;
+    border-color: transparent;
+    transform: translateY(-50%) scale(1.08);
+  }
+  .category-nav-btn:active {
+    transform: translateY(-50%) scale(0.92);
+  }
+  .category-nav-left {
+    left: 0.15rem;
+  }
+  .category-nav-right {
+    right: 0.15rem;
+  }
+
+  /* 柔和左右渐隐边缘 */
   .scroll-fade {
     position: absolute;
     top: 0;
     bottom: 0;
-    width: 2rem;
+    width: 3rem;
     pointer-events: none;
     opacity: 0;
-    transition: opacity 300ms ease-in-out;
-    z-index: 1;
+    transition: opacity 260ms ease-in-out;
+    z-index: 5;
   }
   .scroll-fade[data-visible] {
     opacity: 1;
   }
   .scroll-fade-left {
     left: 0;
-    background: linear-gradient(to left, transparent, var(--card-bg));
+    background: linear-gradient(to right, var(--card-bg) 35%, transparent 100%);
   }
   .scroll-fade-right {
     right: 0;
-    background: linear-gradient(to right, transparent, var(--card-bg));
+    background: linear-gradient(to left, var(--card-bg) 35%, transparent 100%);
   }
   :global(body.wallpaper-transparent) .scroll-fade {
     display: none;
   }
+
+  /* 滚动列表 */
   .category-scroll {
     scrollbar-width: none;
     -ms-overflow-style: none;
+    cursor: grab;
+    user-select: none;
+    -webkit-user-select: none;
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-x pan-y;
   }
   .category-scroll::-webkit-scrollbar {
     display: none;
+  }
+  .category-scroll.is-dragging {
+    cursor: grabbing !important;
+    scroll-behavior: auto !important;
+  }
+  .category-scroll.is-dragging a {
+    pointer-events: none;
   }
 </style>
 
@@ -231,6 +316,12 @@ function initialActive(majorName: string): {
 
     bar.dataset.clickBound = "true";
     bar.addEventListener("click", (event) => {
+      if ((window as any).__categoryJustDragged) {
+        event.preventDefault();
+        event.stopPropagation();
+        return;
+      }
+
       if (!(event.target instanceof Element)) return;
       const pill = event.target.closest<HTMLAnchorElement>(".category-pill");
       if (!pill) return;
@@ -271,10 +362,84 @@ function initialActive(majorName: string): {
     if (!bar || bar.dataset.barType !== "course") return;
 
     const scroll = bar.querySelector<HTMLElement>(".category-scroll");
-    if (!scroll || scroll.dataset.featuresBound === "true") return;
+    if (!scroll) return;
+
+    // 左右微动翻页按钮
+    const btnLeft = bar.querySelector<HTMLButtonElement>(".category-nav-left");
+    const btnRight = bar.querySelector<HTMLButtonElement>(".category-nav-right");
+
+    if (btnLeft && !btnLeft.dataset.bound) {
+      btnLeft.dataset.bound = "true";
+      btnLeft.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const step = Math.max(scroll.clientWidth * 0.7, 180);
+        scroll.scrollBy({ left: -step, behavior: "smooth" });
+      });
+    }
+
+    if (btnRight && !btnRight.dataset.bound) {
+      btnRight.dataset.bound = "true";
+      btnRight.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const step = Math.max(scroll.clientWidth * 0.7, 180);
+        scroll.scrollBy({ left: step, behavior: "smooth" });
+      });
+    }
+
+    if (scroll.dataset.featuresBound === "true") {
+      updateScrollHint();
+      return;
+    }
     scroll.dataset.featuresBound = "true";
 
-    scroll.addEventListener(
+    // 桌面端鼠标按住抓手拖拽（Drag to Scroll）
+    let isDown = false;
+    let startX = 0;
+    let scrollLeftStart = 0;
+    let isDragging = false;
+
+    scroll.addEventListener("mousedown", (e) => {
+      if (e.button !== 0) return;
+      isDown = true;
+      isDragging = false;
+      startX = e.pageX - scroll.offsetLeft;
+      scrollLeftStart = scroll.scrollLeft;
+    });
+
+    window.addEventListener("mousemove", (e) => {
+      if (!isDown) return;
+      const x = e.pageX - scroll.offsetLeft;
+      const walk = x - startX;
+      if (!isDragging && Math.abs(walk) > 5) {
+        isDragging = true;
+        scroll.classList.add("is-dragging");
+      }
+      if (isDragging) {
+        e.preventDefault();
+        scroll.scrollLeft = scrollLeftStart - walk;
+        updateScrollHint();
+      }
+    });
+
+    window.addEventListener("mouseup", () => {
+      if (!isDown) return;
+      isDown = false;
+      if (isDragging) {
+        scroll.classList.remove("is-dragging");
+        (window as any).__categoryJustDragged = true;
+        setTimeout(() => {
+          (window as any).__categoryJustDragged = false;
+        }, 120);
+        isDragging = false;
+      }
+    });
+
+    scroll.addEventListener("dragstart", (e) => e.preventDefault());
+
+    // 整栏鼠标滚轮横向映射
+    bar.addEventListener(
       "wheel",
       (e) => {
         if (
@@ -286,7 +451,7 @@ function initialActive(majorName: string): {
 
         const delta =
           e.deltaMode === WheelEvent.DOM_DELTA_LINE
-            ? e.deltaY * 16
+            ? e.deltaY * 20
             : e.deltaMode === WheelEvent.DOM_DELTA_PAGE
               ? e.deltaY * scroll.clientWidth
               : e.deltaY;
@@ -303,6 +468,7 @@ function initialActive(majorName: string): {
         if (nextScrollLeft === scroll.scrollLeft) return;
         e.preventDefault();
         scroll.scrollLeft = nextScrollLeft;
+        updateScrollHint();
       },
       { passive: false },
     );
@@ -318,23 +484,36 @@ function initialActive(majorName: string): {
     const scroll = bar.querySelector<HTMLElement>(".category-scroll");
     const fadeLeft = bar.querySelector<HTMLElement>(".scroll-fade-left");
     const fadeRight = bar.querySelector<HTMLElement>(".scroll-fade-right");
-    if (!scroll || !fadeLeft || !fadeRight) return;
+    const btnLeft = bar.querySelector<HTMLButtonElement>(".category-nav-left");
+    const btnRight = bar.querySelector<HTMLButtonElement>(".category-nav-right");
+    if (!scroll) return;
 
     const maxScroll = scroll.scrollWidth - scroll.clientWidth;
-    if (maxScroll <= 1) {
-      fadeLeft.removeAttribute("data-visible");
-      fadeRight.removeAttribute("data-visible");
+    if (maxScroll <= 2) {
+      fadeLeft?.removeAttribute("data-visible");
+      fadeRight?.removeAttribute("data-visible");
+      btnLeft?.removeAttribute("data-visible");
+      btnRight?.removeAttribute("data-visible");
       return;
     }
-    if (scroll.scrollLeft > 2) {
-      fadeLeft.setAttribute("data-visible", "");
+
+    const atStart = scroll.scrollLeft <= 4;
+    const atEnd = scroll.scrollLeft >= maxScroll - 4;
+
+    if (!atStart) {
+      fadeLeft?.setAttribute("data-visible", "");
+      btnLeft?.setAttribute("data-visible", "");
     } else {
-      fadeLeft.removeAttribute("data-visible");
+      fadeLeft?.removeAttribute("data-visible");
+      btnLeft?.removeAttribute("data-visible");
     }
-    if (scroll.scrollLeft < maxScroll - 2) {
-      fadeRight.setAttribute("data-visible", "");
+
+    if (!atEnd) {
+      fadeRight?.setAttribute("data-visible", "");
+      btnRight?.setAttribute("data-visible", "");
     } else {
-      fadeRight.removeAttribute("data-visible");
+      fadeRight?.removeAttribute("data-visible");
+      btnRight?.removeAttribute("data-visible");
     }
   }
 
@@ -342,6 +521,12 @@ function initialActive(majorName: string): {
     updateCourseCategoryBar();
     initCourseBarInteractions();
     initScrollFeatures();
+    requestAnimationFrame(updateScrollHint);
+    setTimeout(updateScrollHint, 120);
+    setTimeout(updateScrollHint, 350);
+    if (typeof document !== "undefined" && document.fonts?.ready) {
+      document.fonts.ready.then(updateScrollHint);
+    }
   }
 
   setup();
