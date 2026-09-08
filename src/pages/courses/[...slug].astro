@@ -4,7 +4,6 @@ import Markdown from "@components/common/Markdown.astro";
 import KatexManager from "@components/features/KatexManager.astro";
 import MainGridLayout from "@layouts/MainGridLayout.astro";
 import { courseConfig } from "@/config/courseConfig";
-import { siteConfig } from "@/config/siteConfig";
 import { getRelatedCourses, getSortedCourses } from "@/utils/course-utils";
 import { removeFileExtension, url } from "@/utils/url-utils";
 
@@ -33,9 +32,9 @@ const semesterColor =
 ---
 
 <MainGridLayout
-  title={`${course.data.title} - ${siteConfig.title}`}
+  title={course.data.title}
   description={course.data.description || course.data.title}
-  postSlug={course.id}
+  postSlug={removeFileExtension(course.id)}
   headings={headings}
 >
   <!-- KaTeX 数学公式渲染管理器 -->
@@ -106,7 +105,7 @@ const semesterColor =
           <div class="flex items-center gap-1.5 flex-wrap">
             {course.data.tags.map((tag) => (
               <a
-                href={url(`/tags/?tag=${encodeURIComponent(tag)}`)}
+                href={url(`/courses/?q=${encodeURIComponent(tag)}`)}
                 class="text-xs px-2.5 py-1 rounded-lg bg-black/5 dark:bg-white/5 text-black/65 dark:text-white/65 hover:text-(--primary) hover:bg-(--primary)/10 transition-colors"
               >
                 #{tag}

@@ -44,6 +44,17 @@ $effect(() => {
 	};
 });
 
+// 从 URL 读取初始搜索关键字 (例如 ?q=xxx 或 ?tag=xxx)
+$effect(() => {
+	if (typeof window !== "undefined") {
+		const params = new URLSearchParams(window.location.search);
+		const initialQuery = params.get("q") || params.get("tag");
+		if (initialQuery && !searchQuery) {
+			searchQuery = initialQuery;
+		}
+	}
+});
+
 // 学期色标辅助函数
 const getSemesterColor = (semName: string): string => {
 	const found = semesters.find((s) => s.name === semName);

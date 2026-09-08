@@ -1,4 +1,12 @@
 ---
-// 页面暂不显示，隐藏
-return Astro.redirect("/404/");
+import { url } from "@/utils/url-utils";
+
+// 兼容重定向：将标签查询参数平滑导向课程中心的即时搜索
+return Astro.redirect(
+	Astro.url.searchParams.get("tag")
+		? url(
+				`/courses/?q=${encodeURIComponent(Astro.url.searchParams.get("tag") || "")}`,
+			)
+		: url("/courses/"),
+);
 ---

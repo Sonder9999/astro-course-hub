@@ -10,6 +10,16 @@ import { removeFileExtension } from "@/utils/url-utils";
 
 export const prerender = true;
 
+type OgProps =
+	| {
+			type: "post";
+			entry: CollectionEntry<"posts">;
+	  }
+	| {
+			type: "course";
+			entry: CollectionEntry<"courses">;
+	  };
+
 export const getStaticPaths: GetStaticPaths = async () => {
 	if (!siteConfig.post.generateOgImages) {
 		return [];
@@ -18,14 +28,32 @@ export const getStaticPaths: GetStaticPaths = async () => {
 	const allPosts = await getCollection("posts");
 	const publishedPosts = allPosts.filter((post) => !post.data.draft);
 
-	return publishedPosts.map((post) => {
+	const postPaths = publishedPosts.map((post) => {
 		// 将 id 转换为 slug（移除扩展名）以匹配路由参数
 		const slug = removeFileExtension(post.id);
 		return {
 			params: { slug: `${slug}.png` },
-			props: { post },
+			props: { type: "post" as const, entry: post },
 		};
 	});
+
+	const allCourses = await getCollection("courses");
+	const publishedCourses = allCourses.filter((course) => !course.data.draft);
+
+	const existingSlugs = new Set(postPaths.map((p) => p.params.slug));
+	const coursePaths = publishedCourses
+		.filter(
+			(course) => !existingSlugs.has(`${removeFileExtension(course.id)}.png`),
+		)
+		.map((course) => {
+			const slug = removeFileExtension(course.id);
+			return {
+				params: { slug: `${slug}.png` },
+				props: { type: "course" as const, entry: course },
+			};
+		});
+
+	return [...postPaths, ...coursePaths];
 };
 
 const fontCache = new Map<string, Promise<string>>(); //new Map();
@@ -177,10 +205,8 @@ const loadImageAsArrayBuffer = async (
 	}
 };
 
-export async function GET({
-	props,
-}: APIContext<{ post: CollectionEntry<"posts"> }>): Promise<Response> {
-	const { post } = props;
+export async function GET({ props }: APIContext<OgProps>): Promise<Response> {
+	const { type, entry } = props;
 
 	// Load and get static assets
 	let iconPath = "/favicon/favicon-dark-192.png";
@@ -197,13 +223,42 @@ export async function GET({
 	const subtleTextColor = `hsl(${hue}, 10%, 75%)`;
 	const backgroundColor = `hsl(${hue}, 15%, 12%)`;
 
-	const pubDate = post.data.published.toLocaleDateString("en-US", {
-		year: "numeric",
-		month: "short",
-		day: "numeric",
-	});
+	let pubDate = "";
+	let description = "";
+	let authorName = profileConfig.name;
 
-	const description = post.data.description;
+	if (type === "course") {
+		const course = entry as CollectionEntry<"courses">;
+		description =
+			course.data.description ||
+			course.data.titleEn ||
+			(course.data.semester
+				? `${course.data.semester} · ${course.data.category}`
+				: "");
+		if (course.data.published) {
+			pubDate = course.data.published.toLocaleDateString("en-US", {
+				year: "numeric",
+				month: "short",
+				day: "numeric",
+			});
+		} else if (course.data.semester) {
+			pubDate = `${course.data.semester} · ${course.data.category}`;
+		}
+		if (course.data.instructors && course.data.instructors.length > 0) {
+			authorName = course.data.instructors.join(", ");
+		}
+	} else {
+		const post = entry as CollectionEntry<"posts">;
+		description = post.data.description;
+		pubDate = post.data.published.toLocaleDateString("en-US", {
+			year: "numeric",
+			month: "short",
+			day: "numeric",
+		});
+		if (post.data.author) {
+			authorName = post.data.author;
+		}
+	}
 
 	return new ImageResponse(
 		{
@@ -308,7 +363,7 @@ export async function GET({
 														display: "flex",
 														flexDirection: "column",
 													},
-													children: post.data.title,
+													children: entry.data.title,
 												},
 											},
 										],
@@ -381,7 +436,7 @@ export async function GET({
 														fontWeight: 600,
 														color: textColor,
 													},
-													children: profileConfig.name,
+													children: authorName,
 												},
 											},
 										],

@@ -1,6 +1,6 @@
 ---
 import CourseDashboard from "@/components/course/CourseDashboard.svelte";
-import { courseConfig, siteConfig } from "@/config";
+import { courseConfig } from "@/config";
 import MainGridLayout from "@/layouts/MainGridLayout.astro";
 import { getCourseListData } from "@/utils/course-utils";
 
@@ -8,7 +8,7 @@ const courses = await getCourseListData();
 const heading = "课程";
 ---
 
-<MainGridLayout title={`课程 - ${siteConfig.title}`} description="课程资源导航" heading={heading}>
+<MainGridLayout title="课程" description="课程资源导航" heading={heading}>
   <div class="mb-6 onload-animation">
     <CourseDashboard
       client:load
