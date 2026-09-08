@@ -16,7 +16,7 @@ export const announcementConfig: AnnouncementConfig = {
 		// 链接文本
 		text: "About",
 		// 链接 URL
-		url: "/about/",
+		url: "/astro-course-hub/about/",
 		// 内部链接
 		external: false,
 	},

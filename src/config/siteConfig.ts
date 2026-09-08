@@ -38,7 +38,7 @@ export const siteConfig: SiteConfig = {
 	subtitle: "开源课程资料、学习指南与试卷复习导航站",
 
 	// 站点 URL
-	site_url: "https://courses.example.edu.cn",
+	site_url: "https://sonder9999.github.io/astro-course-hub/",
 
 	// 站点描述
 	description:
