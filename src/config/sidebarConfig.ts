@@ -192,13 +192,13 @@ export const sidebarLayoutConfig: SidebarLayoutConfig = {
 			specificConfig: {
 				ad: {
 					image: {
-						src: "/assets/images/ad/ad1.webp",
-						alt: "广告横幅",
-						link: "https://haoka.lot-ml.com/plugreg.html?agentid=1423316",
-						external: true,
+						src: "",
+						alt: "校园活动与通知横幅",
+						link: "/courses/",
+						external: false,
 					},
 					// 是否允许关闭广告
-					closable: false,
+					closable: true,
 					// 显示次数限制，-1为无限制
 					displayCount: -1,
 					// 组件内边距配置
@@ -209,7 +209,7 @@ export const sidebarLayoutConfig: SidebarLayoutConfig = {
 			},
 		},
 		{
-			// 组件类型：广告栏组件 2
+			// 组件类型：宣传推广栏组件 2
 			type: "advertisement",
 			// 是否启用该组件
 			enable: false,
@@ -217,15 +217,15 @@ export const sidebarLayoutConfig: SidebarLayoutConfig = {
 			position: "sticky",
 			// 是否在文章详情页显示
 			showOnPostPage: true,
-			// 组件专属配置（广告内容直接在此配置）
+			// 组件专属配置（内容直接在此配置）
 			specificConfig: {
 				ad: {
-					title: "支持博主",
+					title: "课程共建计划",
 					content:
-						"如果您觉得本站内容对您有帮助，欢迎支持我们的创作！您的支持是我们持续更新的动力。",
+						"欢迎向本站贡献您的选课心得、实验避坑指南与期末复习题解，薪火相传！",
 					link: {
-						text: "支持一下",
-						url: "about/",
+						text: "查看贡献指南",
+						url: "/about/",
 						external: false,
 					},
 					closable: false,
