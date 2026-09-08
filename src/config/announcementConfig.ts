@@ -5,8 +5,7 @@ export const announcementConfig: AnnouncementConfig = {
 	title: "这是公告标题",
 
 	// 公告内容
-	content:
-		"这只是一个公告",
+	content: "这只是一个公告",
 
 	// 是否允许用户关闭公告
 	closable: true,

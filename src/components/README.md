@@ -1,174 +1,83 @@
 # 📦 Components 组件目录
 
-## 动态组件
-
-- `widget/Dynamic.astro`：显示最新动态的侧边栏组件。
-- `pages/dynamic/DynamicFeed.svelte`：负责动态 JSON 加载、搜索、年份筛选和分页。
-- `pages/dynamic/DynamicGallery.astro`：动态图片网格、轮播和灯箱。
-- `pages/dynamic/DynamicInlineComments.astro`：单条动态的按需评论区。
-- `pages/dynamic/DynamicItem.astro`：动态条目的服务端渲染组件。
-- `pages/dynamic/DynamicItemTemplate.astro`：动态条目的客户端渲染模板。
-
-Firefly 项目中所有可复用组件的集中管理。组件按照功能和职责进行分类，提供清晰的架构和易于维护的代码组织。
-
-## 📁 目录结构
-
-### 🏗️ layout/ - 页面布局组件
-
-负责整体页面框架和布局结构的组件。
-
-- `CategoryBar.astro` - 分类栏组件
-- `ConfigCarrier.astro` - 配置载体组件
-- `DropdownMenu.astro` - 下拉菜单组件
-- `Footer.astro` - 页脚组件
-- `Navbar.astro` - 导航栏组件
-- `NavMenuPanel.astro` - 导航菜单面板
-- `PostCard.astro` - 文章卡片组件
-- `PostMeta.astro` - 文章元数据组件
-- `PostPage.astro` - 文章页面布局组件
-- `SideBar.astro` - 侧边栏组件
-
-### 🎮 controls/ - 导航和交互控件
-
-页面导航和用户交互功能组件。
-
-**导航控件**
-- `BackToComment.astro` - 返回评论区按钮
-- `BackToHome.astro` - 返回主页按钮
-- `BackToTop.astro` - 返回顶部按钮
-- `FloatingControls.astro` - 右下角悬浮控件容器
-- `FloatingTOC.astro` - 浮动目录组件
-- `ScrollDownIndicator.astro` - 向下滚动指示器
-- `ArchivePanel.astro` - 归档面板组件（服务端渲染 + 客户端筛选/折叠）
-
-**交互组件**
-- `DisplaySettings.svelte` - 显示设置组件
-- `DisplaySettingsIntegrated.svelte` - 集成显示设置组件
-- `LayoutSwitchButton.svelte` - 布局切换按钮
-- `LightDarkSwitch.svelte` - 主题切换组件
-- `Search.svelte` - 搜索功能组件
-- `WallpaperSwitch.svelte` - 壁纸模式切换组件
-
-### 🔧 common/ - 公共可复用组件
-
-通用的 UI 组件和工具组件，支持跨项目复用。
-
-**基础 UI 组件**
-- `ButtonLink.astro` - 链接按钮
-- `ButtonTag.astro` - 标签按钮
-- `DropdownItem.astro` / `.svelte` - 下拉选项
-- `DropdownPanel.astro` / `.svelte` - 下拉面板容器
-- `FloatingButton.astro` - 悬浮按钮基础组件
-- `Icon.svelte` - 图标组件（带加载状态和错误处理）
-- `WidgetLayout.astro` - 小部件布局容器
-
-**内容和展示组件**
-- `CoverImage.astro` - 封面图组件（支持本地图片和随机图API）
-- `ImageWrapper.astro` - 图片包装器（支持本地和远程图片）
-- `Markdown.astro` - Markdown 内容样式包装器
-- `PioMessageBox.astro` - 消息框组件（Live2D/Spine 消息显示）
-- `Timeline.astro` / `TimelineItem.astro` - MDX 时间线组件（左侧竖线节点，条目支持日期/标题/正文 Markdown、节点换色和内置图标）
-- `Steps.astro` / `StepItem.astro` / `Badge.astro`  - MDX 内容组件（编号步骤条、内联徽章）
-
-**分页组件**
-- `ClientPagination.svelte` - 客户端分页（JavaScript 控制）
-- `Pagination.astro` - 静态路由分页（Astro 原生）
-
-**列表与筛选组件**
-- `FilterControls.svelte` - 筛选控制组件（胶囊筛选按钮，bangumi/vndb/mal 共用）
-- `TabNav.svelte` - 标签导航组件（支持 URL hash 深链，bangumi/vndb/mal/bilibili 共用）
-- `GridSkeleton.svelte` - 媒体网格加载骨架
-
-### 🧩 widget/ - 小部件
-
-侧边栏中使用的各种功能小部件。
-
-- `Advertisement.astro` - 广告组件
-- `Announcement.astro` - 公告组件
-- `Calendar.astro` - 日历组件
-- `Categories.astro` - 分类组件
-- `Music.astro` - 音乐播放器小部件
-- `Profile.astro` - 个人信息/社交链接小部件
-- `SidebarTOC.astro` - 侧边栏目录组件
-- `SiteInfo.astro` - 站点信息组件
-- `SiteStats.astro` - 站点统计组件
-- `SpineModel.astro` - Spine 看板娘组件
-- `Tags.astro` - 标签组件
-
-### ✨ features/ - 全局功能特效组件
-
-全局加载的功能增强和特效组件。
-
-**管理器（初始化和管理功能）**
-- `FancyboxManager.astro` - Fancybox 图片查看器管理
-- `FontSetup.astro` - 字体加载和管理（基于 Astro Font API）
-- `KatexManager.astro` - Katex 数学公式渲染管理
-- `MusicManager.astro` - 全局音乐播放管理器（单例，管理唯一 audio 元素和播放状态，通过 CustomEvent 同步所有 MusicPlayer 视图实例）
-
-**功能组件**
-- `EncryptedContent.astro` - 加密内容组件
-- `EncryptedPost.astro` - 加密文章组件
-- `Live2DWidget.astro` - Live2D 看板娘组件
-- `MusicPlayer.astro` - 音乐播放器 UI 视图控制器（纯 UI，委托 MusicManager 进行播放控制）
-- `SakuraEffect.astro` - 樱花飘落特效
-- `SpineModel.astro` - Spine 看板娘组件
-- `TypewriterText.astro` - 打字机动画效果
-
-### 📃 pages/ - 页面特定组件
-
-特定页面使用的组件，不用于其他页面。
-
-- `AdvancedSearch.svelte` - 高级搜索组件
-
-**pages/bangumi/** - 番组计划页面组件
-- `BangumiGrid.svelte` - 番组网格布局组件
-- `BangumiSection.svelte` - 番组分类展示组件
-- `Card.svelte` - 番组卡片组件
-
-**pages/gallery/** - 相册页面组件
-- `AlbumCard.astro` - 相册卡片组件
-- `PhotoCard.astro` - 照片卡片组件
-
-### 💬 comment/ - 评论系统组件
-
-第三方评论系统集成组件。
-
-- `index.astro` - 评论主组件
-- `Artalk.astro` - Artalk 评论集成
-- `Disqus.astro` - Disqus 评论集成
-- `Giscus.astro` - Giscus 评论集成（GitHub 讨论）
-- `Twikoo.astro` - Twikoo 评论集成
-- `Waline.astro` - Waline 评论集成
-
-### 📊 analytics/ - 数据统计组件
-
-网站分析和统计集成组件。
-
-- `GoogleAnalytics.astro` - Google Analytics
-- `La51Analytics.astro` - 51la 统计
-- `MicrosoftClarity.astro` - Microsoft Clarity
-- `UmamiAnalytics.astro` - Umami 统计
-
-### 🔧 misc/ - 杂项工具组件
-
-其他辅助和工具类组件。
-
-- `License.astro` - 许可证信息显示
-- `RecommendedPost.astro` - 推荐文章组件
-- `SharePoster.svelte` - 分享海报生成
+高校课程资源导航站模板中所有可复用与页面专用组件的集中管理目录。组件按照功能领域进行模块化拆分，提供清晰的架构和易维护的代码组织。
 
 ---
 
-## 🗂️ 分类原则
+## 📁 目录结构
 
-| 分类 | 用途 | 特点 |
-|------|------|------|
-| **layout/** | 页面布局和结构 | 决定整体页面框架 |
-| **controls/** | 导航和交互 | 用户交互功能 |
-| **common/** | 通用可复用组件 | 跨多个页面/组件使用 |
-| **widget/** | 侧边栏小部件 | 侧边栏特定组件 |
-| **features/** | 全局功能特效 | 全局加载的增强功能 |
-| **pages/** | 页面特定组件 | 仅在特定页面使用 |
-| **comment/** | 评论系统 | 第三方服务集成 |
-| **analytics/** | 数据统计 | 分析和统计服务 |
-| **misc/** | 工具和辅助 | 其他杂项功能 |
+### 📚 course/ - 课程与仪表盘核心组件
+负责课程大纲、Bento Grid 仪表盘、多维检索与卡片展示的核心业务组件。
+
+- `CourseDashboard.svelte` - 🌟 **课程控制台与检索仪表盘组件**：
+  - 基于 **Svelte 5 Runes** (`$state`, `$derived`, `$effect`) 开发的高性能客户端控制台。
+  - **即时模糊搜索**：对课程名、英文名、课程代码、主讲教师、简介及标签实现极速匹配。
+  - **学期与分类联动**：支持开课学期（大一至大四各学期/通识）与学科大类单选与复合过滤。
+  - **双视图切换**：无缝切换 **Bento Grid（便当盒卡片网格）** 与 **紧凑列表（Compact List）** 视图。
+  - **排序策略**：支持推荐权重排序与首字母 A-Z 字典序排序。
+  - **外链与仓库直通**：直接在卡片上悬浮呼出 GitHub 课程仓库、MOOC 及在线评测链接。
+
+### 🏗️ layout/ - 页面框架与布局组件
+负责整体页面框架、通用网格和外层结构的组件。
+
+- `Navbar.astro` - 顶部导航栏（支持响应式折叠菜单与多级下拉）
+- `NavMenuPanel.astro` - 移动端导航抽屉菜单面板
+- `Footer.astro` - 站点页脚组件（版权、备案与建站信息）
+- `SideBar.astro` - 侧边栏容器（响应式展示各类信息小部件）
+- `PostCard.astro` - 通用文章/公告卡片组件
+- `PostMeta.astro` - 文章/公告元数据栏
+- `CategoryBar.astro` - 顶部横向分类快捷导航条
+- `DropdownMenu.astro` - 现代化下拉悬浮菜单组件
+
+### 🎮 controls/ - 交互与导航控件
+页面导航控制、全局设置与检索控件。
+
+- `Search.svelte` - 基于 Pagefind 的全文离线检索弹窗
+- `LightDarkSwitch.svelte` - 亮色/暗色/跟随系统模式切换按钮
+- `DisplaySettings.svelte` / `DisplaySettingsIntegrated.svelte` - 全局外观与布局设置面板
+- `FloatingControls.astro` - 页面右下角悬浮控制按钮组（包含返回顶部、主题切换等）
+- `FloatingTOC.astro` - 移动端或窄屏浮动目录
+- `BackToTop.astro` - 平滑返回顶部按钮
+- `ArchivePanel.astro` - 课程与文章归档面板
+
+### 🔧 common/ - 公共通用 UI 组件
+跨页面高频复用的基础 UI 单元。
+
+- `Icon.svelte` - 跨平台矢量图标组件（集成 Iconify，支持动态按需渲染与 Fallback）
+- `Markdown.astro` - Markdown/MDX 富文本正文排版包装器
+- `CoverImage.astro` - 封面图与 LQIP 渐进式加载组件
+- `ImageWrapper.astro` - 图片外层自适应包裹容器
+- `ButtonLink.astro` - 统一风格的操作按钮与链接
+- `ButtonTag.astro` - 标签徽章按钮（支持主题色与悬浮态）
+- `Pagination.astro` - 服务端静态路由分页条
+- `WidgetLayout.astro` - 小部件外层统一卡片容器
+
+### 🧩 widget/ - 侧边栏小部件
+挂载在侧边栏的独立信息微件。
+
+- `Profile.astro` - 站点组织/运维团队信息微件
+- `Announcement.astro` - 站内公告与重要教务提醒微件
+- `SidebarTOC.astro` - 课程大纲长文目录导航（自动高亮当前阅读位置）
+- `Categories.astro` - 学科分类统计微件
+- `Tags.astro` - 热门标签标签云微件
+- `SiteInfo.astro` - 站点建站时间、运行状态与收录统计
+
+### ✨ features/ - 全局功能与渲染管理
+全局初始化的功能增强与静态插件支持。
+
+- `KatexManager.astro` - KaTeX 数学公式渲染引擎与样式注入
+- `FancyboxManager.astro` - 课程大纲中图片点击大图预览与灯箱查看器
+- `FontSetup.astro` - 静态字体优化与预加载加载器
+
+---
+
+## 🗂️ 组件分类与职责原则
+
+| 目录 | 职责范畴 | 技术选型 | 说明 |
+| :--- | :--- | :--- | :--- |
+| **`course/`** | 课程核心业务与卡片交互 | Svelte 5 / Astro | 课程站独有，包含仪表盘与卡片网格 |
+| **`layout/`** | 全局框架骨架 | Astro | 服务端渲染，决定页面网格栅格 |
+| **`controls/`** | 全局交互与功能控件 | Svelte 5 / Astro | 包含搜索、主题切换与设置面板 |
+| **`common/`** | 通用无状态 UI 原件 | Astro / Svelte | 高内聚、低耦合，跨页面任意调用 |
+| **`widget/`** | 侧边栏插槽微件 | Astro | 挂载于 `SideBar.astro`，受 `sidebarConfig.ts` 调度 |
+| **`features/`** | 样式与脚本特性管理器 | Astro | 负责公式、图片查看器、字体的注入 |

@@ -115,7 +115,7 @@ export const backgroundWallpaper: BackgroundWallpaperConfig = {
 					icon: "fa7-solid:envelope",
 					url: "mailto:example@email.com",
 				},
-/* 				{
+				/* 				{
 					name: "Sponsor",
 					icon: "material-symbols:favorite",
 					url: "https://blog.cuteleaf.cn/sponsor/",

@@ -1,330 +1,220 @@
-
-<img src="./docs/images/1131.png" width = "350" height = "500" alt="Firefly" align=right />
-
 <div align="center">
 
-# Firefly
-> A Fresh and Beautiful Astro Static Blog Theme Template
-> 
-> ![Node.js >= 22](https://img.shields.io/badge/node.js-%3E%3D22-brightgreen) 
-![pnpm >= 11](https://img.shields.io/badge/pnpm-%3E%3D9-blue)
-![Astro](https://img.shields.io/badge/Astro-7.2.0-orange)
+# 🎓 Astro Course Hub / 高校课程资源导航
+
+> A modern, out-of-the-box university course resource navigation and syllabus reading station template.  
+> Designed for colleges, academic departments, and student developer communities to preserve and pass on knowledge, study guides, and past exams ✨
+
+![Node.js >= 22](https://img.shields.io/badge/node.js-%3E%3D22-brightgreen)
+![pnpm >= 11](https://img.shields.io/badge/pnpm-%3E%3D11-blue)
+![Astro](https://img.shields.io/badge/Astro-7.2.10-orange)
+![Svelte](https://img.shields.io/badge/Svelte-5.57.0-red)
+![TailwindCSS](https://img.shields.io/badge/TailwindCSS-v4-38bdf8)
 ![TypeScript](https://img.shields.io/badge/TypeScript-6.0.3-blue)
->
-> [![Stars](https://img.shields.io/github/stars/CuteLeaf/Firefly?style=social)](https://github.com/CuteLeaf/Firefly/stargazers)
-[![Forks](https://img.shields.io/github/forks/CuteLeaf/Firefly?style=social)](https://github.com/CuteLeaf/Firefly/network/members)
-[![Issues](https://img.shields.io/github/issues/CuteLeaf/Firefly)](https://github.com/CuteLeaf/Firefly/issues)
-> 
-> [![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/Z8Z41NQALY)
->
-> **QQ交流群：[1087127207](https://qm.qq.com/q/ZGsFa8qX2G)**
-> 
-> ![GitHub License](https://img.shields.io/github/license/CuteLeaf/Firefly)
-[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/CuteLeaf/Firefly)
-[![Afdian Sponsor](https://img.shields.io/badge/Afdian-Sponsor%20Author-ff69b4.svg)](https://ifdian.net/a/cuteleaf)
+![License](https://img.shields.io/badge/License-MIT-green)
+
 </div>
 
+---
+
+📖 README:
+**[简体中文](README.md)** | **[English](README.en.md)**
+
+🚀 Quick Links:
+[**🖥️ Live Demo**](https://courses.example.edu.cn) /
+[**📝 Contribution Guide**](CONTRIBUTING.md) /
+[**💡 Course Markdown Example**](src/content/courses/cs101-c-programming.md) /
+[**⚙️ Configuration Docs**](src/config/README.md)
+
+⚡ **Ultra-Fast Static Site**: Powered by Astro 7 SSG, delivering blazing-fast page loads and native SEO optimization.  
+🍱 **Bento Grid Dashboard**: Modern card grid supporting multi-dimensional real-time filtering by semester (Freshman through Senior / General Electives) and discipline category, alongside instant fuzzy search.  
+📖 **Elegant Syllabus Reading**: Built-in rendering for KaTeX math formulas, Mermaid diagrams, syntax-highlighted code blocks, and Admonition callouts.  
+🔍 **Offline Full-Text Search**: Client-side millisecond search powered by Pagefind with zero server runtime overhead.  
+🔧 **Decoupled & Universal**: Completely free of hardcoded university specifics. Curriculums, semesters, and categories are 100% configuration-driven.  
+📱 **Fully Responsive**: Flawlessly optimized across desktop, tablet, and mobile screens.
 
 ---
-📖 README:
-**[简体中文](README.md)** | **[繁體中文](docs/README.zh-TW.md)** | **[English](README.en.md)** | **[日本語](docs/README.ja.md)** | **[한국어](docs/README.ko.md)**
-
-🚀 Quick Guide:
-[**🖥️Live Demo**](https://firefly.cuteleaf.cn/) /
-[**📝Documentation**](https://docs-firefly.cuteleaf.cn/) /
-[**🍀My Blog**](https://blog.cuteleaf.cn)
-
-⚡ Static Site Generation: Ultra-fast loading speed and SEO optimization based on Astro
-
-🎨 Modern Design: Clean and beautiful interface with customizable theme colors
-
-📱 Mobile-Friendly: Perfect responsive experience with mobile-specific optimizations
-
-🔧 Highly Configurable: Most features can be customized through configuration files
-
-<table width="100%" align="center">
-  <tr>
-    <td colspan="3" align="center">
-      <img src="./docs/images/1.webp" >
-      <br>Banner Mode</td>
-    </td>
-  </tr>
-  <tr>
-    <td align="center"><img src="./docs/images/3.webp" width="300"><br>Overlay Mode</td>
-    <td align="center"><img src="./docs/images/2.webp" width="300"><br>Fullscreen Wallpaper Mode</td>
-    <td align="center"><img src="./docs/images/4.webp" width="300"><br>Solid Color Mode</td>
-  </tr>
-</table>
-<img alt="Lighthouse" src="./docs/images/Lighthouse.png" />
 
 >[!TIP]
 >
->Firefly is a fresh, beautiful, and modern personal blog theme template based on the Astro framework and the Fuwari template, designed for tech enthusiasts and content creators. It integrates a modern web tech stack, offering rich feature modules and a highly customizable interface so you can easily build a professional and visually appealing personal blog.
+>**Astro Course Hub** is an open-source universal mother template for colleges, faculties, and student tech communities.
 >
->**If you refer to or use Firefly component design and related code, please credit Firefly.**
+>Heavily refactored from the aesthetic Astro blog theme [Firefly](https://github.com/CuteLeaf/Firefly) and [fuwari](https://github.com/saicaca/fuwari), this project transforms the traditional personal blog post architecture into a **structured Course Collection Schema**. While preserving the smooth page transitions, beautiful visual layouts, and rich typography, it provides dedicated academic navigation, search, and syllabus browsing tools.
 >
->Firefly also preserves the original fuwari layout, which can be freely switched in the configuration file according to your preferences.
->
->**For more layout configurations and demos, please see: [Firefly Layout System Details](https://firefly.cuteleaf.cn/posts/guide/firefly-layout-system/)**
->
->Firefly supports i18n multilingual UI, but except for Simplified Chinese, other languages are AI-translated. If you find any errors, feel free to submit a [Pull Request](https://github.com/CuteLeaf/Firefly/pulls) to help improve them.
+>Simply **Fork this repository**, configure your own university's semesters and academic programs, and deploy a branded course hub for your school in minutes!
+
+---
 
 ## ✨ Features
 
-### Core Features
+### 📚 Curriculum System & Resource Hub
+- [x] **Bento Grid Dashboard** - Clean, card-based interface with clear hierarchy and visual clarity.
+- [x] **Multi-Dimensional Instant Filtering** - Filter seamlessly by semester (Year 1 to 4, Fall/Spring, General Electives) and subject categories.
+- [x] **Client-Side Instant Fuzzy Search** - Real-time filtering across course titles, English names, course codes (e.g. `CS101`), instructors, descriptions, and tags.
+- [x] **Featured Tags** - Pin popular tags like `Required`, `Core`, `Lab Included`, `Past Exams` for quick access.
+- [x] **Direct Resource Links** - Each course card features one-click buttons to GitHub courseware repos, MOOCs, and Online Judges.
 
-- [x] **Astro + Tailwind CSS** - Ultra-fast static site generation based on modern tech stack
-- [x] **Smooth Animations** - Swup page transition animations for silky smooth browsing experience
-- [x] **Responsive Design** - Perfect adaptation for desktop, tablet and mobile devices
-- [x] **Multi-language Support** - i18n internationalization ui, supports Simplified Chinese, Traditional Chinese, English, Japanese, Russian, Korean
-- [x] **Full-text Search** - Client-side search based on Pagefind, supports article content indexing.
+### 📝 Immersive Syllabus Reading
+- [x] **Full Markdown & MDX Support** - Standard GFM compliance to beautifully render each course's `README.md`.
+- [x] **KaTeX Math Formula Engine** - High-speed rendering for inline math `$E=mc^2$` and display equations `$$\sum_{i=1}^n x_i$$`.
+- [x] **Mermaid Diagram Support** - Render flowcharts, state machines, and sequence diagrams directly in course descriptions.
+- [x] **Enhanced Code Blocks** - Expressive Code integration with line highlighting, language badges, collapsible code, and copy-to-clipboard.
+- [x] **Admonition Callouts** - Clean GitHub and Obsidian style `NOTE`, `TIP`, `WARNING`, and `CAUTION` blocks.
+- [x] **Pagefind Offline Indexing** - Build-time indexing of all courses, metadata, and body content for millisecond search.
 
-### Personalization
-- [x] **Dynamic Sidebar** - Supports single sidebar, dual sidebar configuration
-- [x] **Article Layout** - Supports list (single column) and grid (multi-column/masonry) layout
-- [x] **Font Management** - Custom font support with rich font selector
-- [x] **Footer Configuration** - HTML content injection, fully customizable
-- [x] **Light/Dark Mode** - Supports light/dark/system three modes
-- [x] **Navbar Customization** - Logo, title, links fully customizable
-- [x] **Wallpaper Mode Switching** - Banner wallpaper, fullscreen wallpaper, fullscreen transparent wallpaper, solid background
-- [x] **Theme Color Customization** - 360° hue adjustment
+### 🎨 Highly Configurable & Universal
+- [x] **Config-Driven Architecture** - Customize semesters, categories, and site branding in `src/config/` without modifying component source code.
+- [x] **360° Theme Color Customization** - Stepless hue adjustment to match any university's official color palette.
+- [x] **Light & Dark Modes** - Full support for light, dark, and system-adaptive themes.
+- [x] **CLI Scaffolding** - Run `pnpm new-course` to generate standardized course Markdown files in seconds.
 
-
-If you have useful features and optimizations, please submit a [Pull Request](https://github.com/CuteLeaf/Firefly/pulls)
-
-## 🚀 Quick Start
-
-### Requirements
-
-- Node.js ≥ 22
-- pnpm ≥ 11
-
-### Local Development
-
-1. **Clone the repository:**
-   ```bash
-   git clone https://github.com/Cuteleaf/Firefly.git
-   cd Firefly
-   ```
-   
-   **First [Fork](https://github.com/CuteLeaf/Firefly/fork) to your own repository then clone (recommended). Don't forget to Star before Fork!**
-
-   ```bash
-   git clone https://github.com/you-github-name/Firefly.git
-   cd Firefly
-   ```
-3. **Install dependencies:**
-   ```bash
-   # Install pnpm if not installed
-   npm install -g pnpm
-   
-   # Install project dependencies
-   pnpm install
-   ```
-
-4. **Configure blog:**
-   - Edit configuration files in `src/config/` directory to customize blog settings
-
-5. **Start development server:**
-   ```bash
-   pnpm dev
-   ```
-   Blog will be available at `http://localhost:4321`
-
-### Platform Hosting Deployment
-- **Refer to the [official guide](https://docs.astro.build/en/guides/deploy/) to deploy your blog to Vercel, Netlify, Cloudflare Pages, EdgeOne Pages, etc.**
-- **Vercel**, **Netlify** and other major platforms auto-deploy, automatically selecting the appropriate adapter based on the environment.
-
-   Framework Preset: `Astro`
-
-   Root Directory: `./`
-
-   Output Directory: `dist`
-
-   Build Command: `pnpm run build`
-
-   Install Command: `pnpm install`
-
-   [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/CuteLeaf/Firefly&project-name=Firefly&repository-name=Firefly)
-   [![Deploy to Netlify](https://www.netlify.com/img/deploy/button.svg)](https://app.netlify.com/start/deploy?repository=https://github.com/CuteLeaf/Firefly)
-
-## 📖 Configuration
-
-> 📚 **Detailed Configuration Documentation**: Check [Firefly Documentation](https://docs-firefly.cuteleaf.cn/) for complete configuration guide
-
-### Setting Website Language
-
-To set the default language for your blog, edit the `src/config/siteConfig.ts` file:
-
-```typescript
-// Define site language
-const SITE_LANG = "zh_CN";
-```
-
-**Supported language codes:**
-- `zh_CN` - Simplified Chinese
-- `zh_TW` - Traditional Chinese
-- `en` - English
-- `ja` - Japanese
-- `ru` - Russian
-- `ko` - Korean
-
-### Configuration File Structure
-
-```
-src/
-├── config/
-│   ├── index.ts                  # Configuration index file
-│   ├── siteConfig.ts             # Site basic configuration
-│   ├── analyticsConfig.ts        # Analytics configuration
-│   ├── announcementConfig.ts     # Announcement configuration
-│   ├── backgroundWallpaper.ts    # Background wallpaper configuration
-│   ├── commentConfig.ts          # Comment system configuration
-│   ├── coverImageConfig.ts       # Cover image configuration
-│   ├── displaySettingsConfig.ts  # Settings panel configuration
-│   ├── dynamicConfig.ts          # Moments page configuration
-│   ├── effectsConfig.ts          # Animation effects config (sakura, etc.)
-│   ├── expressiveCodeConfig.ts   # Code highlighting configuration
-│   ├── fontConfig.ts             # Font configuration
-│   ├── footerConfig.ts           # Footer configuration
-│   ├── friendsConfig.ts          # Friend links configuration
-│   ├── galleryConfig.ts          # Gallery configuration
-│   ├── licenseConfig.ts          # License configuration
-│   ├── musicConfig.ts            # Music player configuration
-│   ├── navBarConfig.ts           # Navbar configuration
-│   ├── pioConfig.ts              # Mascot configuration
-│   ├── mermaidConfig.ts          # Mermaid diagram configuration
-│   ├── plantumlConfig.ts         # PlantUML diagram configuration
-│   ├── profileConfig.ts          # User profile configuration
-│   ├── sidebarConfig.ts          # Sidebar layout configuration
-│   └── sponsorConfig.ts          # Sponsor configuration
-```
-
-
-## ⚙️ Article Frontmatter
-
-```yaml
 ---
-title: My First Blog Post
-published: 2023-09-09
-description: This is the first post of my new Astro blog.
-image: ./cover.jpg  # Or use "api" to enable random cover images
-tags: [Foo, Bar]
-category: Front-end
-draft: false
-lang: zh-CN      # Only set when article language differs from site language in `siteConfig.ts`
-pinned: false    # Pin article
-comment: true    # Enable comments
----
-```
 
-## Moments
+## 🚀 Quick Start (Fork & Deploy Guide)
 
-Moment files are stored in `src/content/dynamic/`, with one Markdown file per moment. Create one with:
+### 1. Prerequisites
+- **Node.js** ≥ 22.23.0
+- **pnpm** ≥ 11.0.0 (`preinstall` enforces pnpm)
 
+### 2. Fork and Clone
+1. Click the **[Fork]** button on the GitHub repository page to copy this repository into your account or organization.
+2. Clone your forked repository:
+   ```bash
+   git clone https://github.com/<your-username>/<your-repo-name>.git
+   cd <your-repo-name>
+   ```
+
+### 3. Install Dependencies
 ```bash
-pnpm new-d The weather is lovely today
+pnpm install
 ```
 
-`pnpm new-dynamic <content>` is the equivalent full command.
+### 4. Customize Configuration
+Open and edit the two core configuration files (well-commented):
+
+- **`src/config/siteConfig.ts`**:
+  Update `title` (e.g., `Awesome University Course Hub`), `subtitle`, site description, and `themeColor.hue`.
+- **`src/config/courseConfig.ts`**:
+  Customize your school's semester structure in `semesters`, academic disciplines in `categories`, and default repository links in `repository`.
+
+### 5. Local Development
+```bash
+pnpm dev
+```
+Open `http://localhost:4321` in your browser for hot-reloading development.
+
+### 6. Add a Course
+Use the built-in CLI command to scaffold a new course Markdown file:
+```bash
+pnpm new-course "Data Structures and Algorithms" "大二上" "专业核心课"
+```
+The file will be created in `src/content/courses/`. Fill in the course outline, review guides, and recommended resources.
+
+---
+
+## ☁️ Deployment
+
+The project builds to a fully static site in `./dist/` and can be deployed for free on popular static hosting platforms:
+
+| Platform | Build Command | Output Directory | Install Command |
+| :--- | :--- | :--- | :--- |
+| **Vercel** | `pnpm build` | `dist` | `pnpm install` |
+| **Cloudflare Pages** | `pnpm build` | `dist` | `pnpm install` |
+| **Netlify** | `pnpm build` | `dist` | `pnpm install` |
+| **GitHub Pages** | GitHub Actions deploying to `gh-pages` | `dist` | `pnpm install` |
+
+> [!NOTE]
+> The `pnpm build` script automatically runs LQIP generation, Astro static compilation, font subsetting, and Pagefind search indexing.
+
+---
+
+## ⚙️ Course Frontmatter Specification (Schema)
+
+Every course Markdown file under `src/content/courses/` adheres to the Zod Schema defined in `src/content.config.ts`:
 
 ```yaml
 ---
-published: 2026-07-15 16:15:29
-pinned: true  # Pin article
-location: China # Location
+title: "Fundamentals of Programming (C/C++)" # Required: Chinese or display course name
+titleEn: "Fundamentals of Programming"       # Optional: English name or abbreviation
+code: "CS101"                                # Optional: Course code
+semester: "大一上"                           # Required: Semester name matching courseConfig.ts
+category: "学科基础课"                       # Required: Discipline category matching courseConfig.ts
+tags: ["必修", "含实验", "历年试卷"]         # Optional: Tags for badges and filtering
+description: "Introductory CS course..."     # Optional: 1-2 sentence overview
+credits: 4.0                                 # Optional: Course credits
+hours: 64                                    # Optional: Total hours
+instructors: ["Teaching Team"]               # Optional: List of instructors
+prerequisites: ["None"]                      # Optional: Prerequisites
+difficulty: 3.5                              # Optional: Difficulty rating (1.0 - 5.0)
+repoUrl: "https://github.com/..."            # Optional: Link to GitHub course materials
+externalLinks:                               # Optional: External links (MOOC, OJ, Cloud Drive)
+  - name: "MOOC Course"
+    url: "https://www.icourse163.org/..."
+    icon: "material-symbols:smart-display-outline"
+icon: "material-symbols:code-blocks"         # Optional: Iconify icon name
+order: 10                                    # Optional: Sorting priority (lower = earlier)
+draft: false                                 # Optional: Draft flag (omitted in production)
 ---
-
-Moment content supports Markdown.
 ```
 
-Also supports [Memos](https://www.usememos.com/) as a data source. Configure the `memos` option in `src/config/dynamicConfig.ts` to fetch Memos moments in real-time, with pinned sync and image attachment support. See [Moments documentation](https://docs-firefly.cuteleaf.cn/en/guide/dynamic.html).
+Write course syllabus, lecture notes, lab guides, and review tips in the Markdown body.
 
-## 📖 Markdown Extensions
+---
 
-In addition to the default [GitHub Flavored Markdown](https://github.github.com/gfm/) support in Astro, there are some additional Markdown features:
+## 📁 Configuration Structure
 
-- Admonitions - Supports configuration for GitHub, Obsidian, VitePress, and Docusaurus themes ([Preview and Usage](https://firefly.cuteleaf.cn/posts/markdown-extended/))
-- GitHub Repository Cards ([Preview and Usage](https://firefly.cuteleaf.cn/posts/markdown-extended/))
-- Enhanced Code Blocks based on Expressive Code ([Preview](http://firefly.cuteleaf.cn/posts/code-examples/) / [Documentation](https://expressive-code.com/))
+```
+src/config/
+├── index.ts                  # Central configuration export barrel
+├── courseConfig.ts           # 🌟 Core: Semesters, categories, tags, and repo settings
+├── siteConfig.ts             # 🌟 Core: Site title, subtitle, theme color, page toggles
+├── navBarConfig.ts           # Navbar links, dropdowns, and search config
+├── footerConfig.ts           # Footer text and custom HTML injection
+├── expressiveCodeConfig.ts   # Code block syntax theme and folding
+├── fontConfig.ts             # Font families and preloading
+├── commentConfig.ts          # Comment systems (Twikoo, Waline, Giscus, etc.)
+└── README.md                 # Detailed config documentation
+```
 
-## 🧞 Commands
+---
 
-All commands need to be executed in the project root directory:
+## 🧞 Available Commands
 
-| Command                    | Action                                              |
-|:---------------------------|:----------------------------------------------------|
-| `pnpm install`             | Install dependencies                                |
-| `pnpm dev`                 | Start local development server at `localhost:4321`  |
-| `pnpm build`               | Build site to `./dist/`                             |
-| `pnpm preview`             | Preview built site locally                          |
-| `pnpm check`               | Check for errors in code                            |
-| `pnpm format`              | Format your code using Biome                        |
-| `pnpm new-post <filename>` | Create new article                                  |
-| `pnpm new-d <content>`     | Create a new moment                                 |
-| `pnpm new-dynamic <content>` | Create a new moment (full command)                |
-| `pnpm astro ...`           | Execute `astro add`, `astro check` and other commands |
-| `pnpm astro --help`        | Display Astro CLI help                              |
+| Command | Description |
+| :--- | :--- |
+| `pnpm dev` | Start local dev server at `http://localhost:4321` |
+| `pnpm new-course <Title> [semester] [category]` | Scaffold a new course Markdown file |
+| `pnpm build` | Full production build into `./dist/` (including Pagefind index) |
+| `pnpm preview` | Locally preview the built production site |
+| `pnpm check` | Run Astro syntax diagnostics |
+| `pnpm type-check` | Run TypeScript strict type verification (`tsc --noEmit`) |
+| `pnpm format` | Format codebase using Biome |
+| `pnpm lint` | Lint codebase with auto-fix using Biome |
+
+---
+
+## ⚖️ Academic Integrity & Disclaimer
+
+To ensure healthy and compliant open-source collaboration:
+
+1. **Educational & Sharing Purpose**: All materials, notes, and past exam reviews are strictly intended for open-source study and academic reference.
+2. **Academic Integrity**: Using this platform for exam cheating, ghostwriting, or homework plagiarism is strictly prohibited.
+3. **No Confidential Materials**: Never upload confidential university documents, classified research materials, or non-public exam papers.
+4. **Copyright Compliance**: Notes and writeups should be original. Credit original professors and textbooks when quoting slides or diagrams.
+
+---
 
 ## 🙏 Acknowledgments
 
-Special thanks to [saicaca](https://github.com/saicaca) for developing the [fuwari](https://github.com/saicaca/fuwari) template, which Firefly is based on for secondary development.
+This project is built upon the exceptional work of open-source projects:
 
-The copyright of Firefly-related image assets belongs to [miHoYo](https://www.mihoyo.com/), the developer of the game ["Honkai: Star Rail"](https://sr.mihoyo.com/).
+- **[Firefly](https://github.com/CuteLeaf/Firefly)** by [CuteLeaf](https://github.com/CuteLeaf) - The upstream theme that provided the foundational design system and component architecture.
+- **[fuwari](https://github.com/saicaca/fuwari)** by [saicaca](https://github.com/saicaca) - The original prototype and inspiration for Firefly.
+- **[Astro](https://astro.build/)**, **[Svelte 5](https://svelte.dev/)**, and **[Tailwind CSS v4](https://tailwindcss.com/)**.
+- **[Pagefind](https://pagefind.app/)** - High-speed offline static search.
 
-### Tech Stack
-
-- [Astro](https://astro.build) 
-- [Tailwind CSS](https://tailwindcss.com) 
-- [Iconify](https://iconify.design)
-
-### Inspiration Projects
-
-- [fuwari](https://github.com/saicaca/fuwari)
-- [hexo-theme-shoka](https://github.com/amehime/hexo-theme-shoka)
-- [astro-koharu](https://github.com/cosZone/astro-koharu)
-- [Mizuki](https://github.com/matsuzaka-yuki/Mizuki)
-
-### Other References
-- Blogger `霞葉` [Bangumi Collection](https://kasuha.com/posts/fuwari-enhance-ep2/) page component
-- Bilibili creator `公公的日常` Q-version [Firefly Mascot Spine Model](https://www.bilibili.com/video/BV1fuVzzdE5y)
+---
 
 ## 📝 License
 
-This project is licensed under the [MIT license](https://mit-license.org/). See the [LICENSE](./LICENSE) file for details.
-
-Originally forked from [saicaca/fuwari](https://github.com/saicaca/fuwari). Thanks to the original author for their contributions. 
-
-**Copyright Notice:**
-- Copyright (c) 2024 [saicaca](https://github.com/saicaca) - [fuwari](https://github.com/saicaca/fuwari)
-- Copyright (c) 2025 [CuteLeaf](https://github.com/CuteLeaf) - [Firefly](https://github.com/CuteLeaf/Firefly)
-
-Under the MIT license, you are free to use, modify, and distribute the code, but you must retain the above copyright notice.
-
-## 🍀 Contributors
-
-Thanks to the following contributors for their contributions to this project. If you have any questions or suggestions, please submit an [Issue](https://github.com/CuteLeaf/Firefly/issues) or [Pull Request](https://github.com/CuteLeaf/Firefly/pulls).
-
-><a href="https://github.com/CuteLeaf/Firefly/graphs/contributors">
->  <img src="https://contrib.rocks/image?repo=CuteLeaf/Firefly" />
-></a>
-
-Thanks to the following contributors for their contributions to the original project [fuwari](https://github.com/saicaca/fuwari), which laid the foundation for this project.
-
-><a href="https://github.com/saicaca/fuwari/graphs/contributors">
->  <img src="https://contrib.rocks/image?repo=saicaca/fuwari" />
-></a>
-
-## ⭐ Star History
-
-[![Star History Chart](https://api.star-history.com/svg?repos=CuteLeaf/Firefly&type=Date)](https://star-history.com/#CuteLeaf/Firefly&Date)
-
-
-<!-- ALL-CONTRIBUTORS-LIST:START - Do not remove or modify this section -->
-<!-- prettier-ignore-start -->
-<!-- markdownlint-disable -->
-
-<!-- markdownlint-restore -->
-<!-- prettier-ignore-end -->
-
-<!-- ALL-CONTRIBUTORS-LIST:END -->
+This project is open-sourced under the [MIT License](LICENSE). Feel free to fork, adapt, and deploy it for your school!
