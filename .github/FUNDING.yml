@@ -1,5 +1,4 @@
-# ko_fi
-ko_fi: cuteleaf
-
-# 爱发电（推荐国内用户）
-custom: ['https://ifdian.net/a/cuteleaf']
+# 赞助渠道配置（高校/学院开源课程站通常为公益非盈利项目）
+# 如需开启赞助或接受校友/机构捐赠，可在此配置组织主页或捐赠链接：
+# github: [your-github-org]
+# custom: ['https://your-univ-foundation.org']

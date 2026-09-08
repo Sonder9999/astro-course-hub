@@ -1,0 +1,53 @@
+name: 课程资料征集与诉求 / Course Request
+description: 缺少某门课程的资料或攻略？在此发起需求征集或申请收录新课程
+title: "[求资料]: <课程名称> - <学期>"
+labels: ["course request", "documentation"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感谢提交课程资料征集诉求！请尽量提供清晰的课程信息，方便学长学姐或其他热心同学补充对应资料。
+  - type: input
+    id: course-name
+    attributes:
+      label: 课程完整名称
+      description: 请填写该课程的标准中文全称或课程代码
+      placeholder: 例如：数据结构与算法 (CS201) / 大学物理 (B)
+    validations:
+      required: true
+  - type: dropdown
+    id: semester
+    attributes:
+      label: 开课学期
+      description: 该课程通常在哪个学期开设
+      options:
+        - 大一上
+        - 大一下
+        - 大二上
+        - 大二下
+        - 大三上
+        - 大三下
+        - 大四
+        - 通识选修
+        - 其他/跨学期
+    validations:
+      required: true
+  - type: checkboxes
+    id: resource-types
+    attributes:
+      label: 期望获取的资料类型
+      description: 勾选你最需要的资料或经验类型
+      options:
+        - label: 选课建议与任课教师考核风格
+        - label: 实验/大作业踩坑经验与指引
+        - label: 期末复习考点梳理与题型分布
+        - label: 历年期末回忆版试题与思路解析
+        - label: 优质参考教材或网课推荐
+  - type: textarea
+    id: detail-description
+    attributes:
+      label: 详细说明与补充
+      description: 补充任何已知的信息，如授课教师、先修要求等
+      placeholder: 例如：该课程平时实验难度较大，希望有学长学姐分享一下环境配置或大作业选题经验...
+    validations:
+      required: true
