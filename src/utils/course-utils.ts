@@ -13,6 +13,7 @@ export type CourseListItem = {
 	code: string;
 	semester: string;
 	category: string;
+	major: string | string[];
 	tags: string[];
 	description: string;
 	credits?: number;
@@ -83,6 +84,7 @@ export async function getCourseListData(): Promise<CourseListItem[]> {
 			code: c.data.code || "",
 			semester: c.data.semester,
 			category: c.data.category,
+			major: c.data.major || "公共课",
 			tags: c.data.tags || [],
 			description: c.data.description || "",
 			credits: c.data.credits,
@@ -153,6 +155,47 @@ export async function getCourseCategories(): Promise<CountItem[]> {
 }
 
 /**
+ * 获取所有培养专业及其课程统计
+ * 规则：按 courseConfig.majors 顺序优先排列（公共课通常第一位），未显式声明的专业按数量降序排列
+ */
+export async function getCourseMajors(): Promise<CountItem[]> {
+	const courses = await getSortedCourses();
+	const countMap = new Map<string, number>();
+
+	for (const c of courses) {
+		const rawMajor = c.data.major;
+		const majors = Array.isArray(rawMajor) ? rawMajor : [rawMajor || "公共课"];
+		for (const m of majors) {
+			const trimmed = m.trim();
+			if (trimmed) {
+				countMap.set(trimmed, (countMap.get(trimmed) || 0) + 1);
+			}
+		}
+	}
+
+	const configuredMajors = (courseConfig.majors || []).map((m) => m.name);
+	const result: CountItem[] = [];
+
+	// 先按配置表顺序排
+	for (const name of configuredMajors) {
+		result.push({
+			name,
+			count: countMap.get(name) || 0,
+		});
+		countMap.delete(name);
+	}
+
+	// 剩余未在配置表中声明的专业按数量降序排
+	const remaining: CountItem[] = [];
+	for (const [name, count] of countMap.entries()) {
+		remaining.push({ name, count });
+	}
+	remaining.sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
+
+	return [...result, ...remaining];
+}
+
+/**
  * 获取所有课程标签及数量
  */
 export async function getCourseTags(): Promise<CountItem[]> {
@@ -176,18 +219,26 @@ export async function getCourseTags(): Promise<CountItem[]> {
 }
 
 /**
- * 获取相关课程推荐（同学期或同分类）
+ * 获取相关课程推荐（同学期、同专业或同分类）
  */
 export async function getRelatedCourses(
 	current: CourseEntry,
 	limit = 4,
 ): Promise<CourseEntry[]> {
 	const all = await getSortedCourses();
+	const currentMajors: string[] = Array.isArray(current.data.major)
+		? current.data.major
+		: [current.data.major || "公共课"];
+
 	return all
 		.filter((c) => c.id !== current.id)
 		.map((c) => {
 			let score = 0;
 			if (c.data.semester === current.data.semester) score += 3;
+			const cMajors: string[] = Array.isArray(c.data.major)
+				? c.data.major
+				: [c.data.major || "公共课"];
+			if (cMajors.some((m: string) => currentMajors.includes(m))) score += 2.5;
 			if (c.data.category === current.data.category) score += 2;
 			const sharedTags = (c.data.tags || []).filter((t) =>
 				(current.data.tags || []).includes(t),

@@ -1,0 +1,393 @@
+---
+import { Icon } from "astro-icon/components";
+import { getCourseMajors, getSortedCourses } from "@/utils/course-utils";
+import { url } from "@/utils/url-utils";
+
+interface Props {
+	currentMajor?: string | string[];
+}
+
+const { currentMajor } = Astro.props as Props;
+
+const majors = await getCourseMajors();
+const totalCourses = (await getSortedCourses()).length;
+const coursesUrl = url("/courses/");
+
+const pathname = Astro.url.pathname.replace(/\/$/, "");
+const coursesPath = coursesUrl.replace(/\/$/, "");
+const isCoursesHome = pathname === coursesPath;
+
+// 格式化当前专业（若是数组取第一个或由客户端精准匹配）
+const currentMajorList: string[] = Array.isArray(currentMajor)
+	? currentMajor
+	: currentMajor
+		? [currentMajor]
+		: [];
+const primaryMajor = currentMajorList[0] || "";
+
+// 服务端计算初始高亮
+function initialActive(majorName: string): {
+	active?: boolean;
+	soft?: boolean;
+} {
+	if (isCoursesHome) {
+		return majorName === "" ? { active: true } : {};
+	}
+	if (majorName && currentMajorList.includes(majorName)) {
+		return { soft: true };
+	}
+	return {};
+}
+---
+
+<div
+  class="card-base category-bar p-3 onload-animation"
+  id="category-bar"
+  data-bar-type="course"
+  data-courses-path={coursesUrl}
+  data-current-course-major={primaryMajor}
+  data-current-majors-json={JSON.stringify(currentMajorList)}
+>
+  <div class="category-bar-inner flex gap-2">
+    <!-- 全部课程 Pill -->
+    <a
+      href={coursesUrl}
+      class="category-pill focus-ring-inset text-sm px-3.5 py-1.5 shrink-0
+             transition-colors duration-150 ease-out flex items-center justify-center gap-1.5"
+      data-major-name=""
+      data-active={initialActive("").active ? "" : undefined}
+      aria-label="全部课程"
+    >
+      <Icon name="material-symbols:school-outline" class="text-lg" />
+      <span class="font-medium">全部课程</span>
+      <span class="pill-count">{totalCourses}</span>
+    </a>
+
+    <div class="category-divider shrink-0"></div>
+
+    <!-- 专业滚动区 -->
+    <div class="scroll-area relative">
+      <div class="scroll-fade scroll-fade-left" aria-hidden="true"></div>
+      <div class="category-scroll flex gap-2 overflow-x-auto">
+        {
+          majors.map((m) => {
+            const active = initialActive(m.name);
+            const majorUrl = `${coursesUrl}?major=${encodeURIComponent(m.name)}`;
+            return (
+              <a
+                href={majorUrl}
+                class="category-pill focus-ring-inset text-sm px-4 py-1.5 whitespace-nowrap
+                       transition-colors duration-150 ease-out flex items-center justify-center"
+                data-major-name={m.name}
+                data-active={active.active ? "" : undefined}
+                data-soft-active={active.soft ? "" : undefined}
+              >
+                {m.name}
+                <span class="pill-count">{m.count}</span>
+              </a>
+            );
+          })
+        }
+      </div>
+      <div class="scroll-fade scroll-fade-right" aria-hidden="true"></div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .category-bar .category-pill {
+    border: none;
+  }
+  .category-bar {
+    margin-bottom: 1rem;
+  }
+  .category-divider {
+    width: 1px;
+    align-self: stretch;
+    background: var(--line-divider);
+    opacity: 0.5;
+  }
+  .scroll-area {
+    flex: 1;
+    min-width: 0;
+    position: relative;
+  }
+  .scroll-fade {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 2rem;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 300ms ease-in-out;
+    z-index: 1;
+  }
+  .scroll-fade[data-visible] {
+    opacity: 1;
+  }
+  .scroll-fade-left {
+    left: 0;
+    background: linear-gradient(to left, transparent, var(--card-bg));
+  }
+  .scroll-fade-right {
+    right: 0;
+    background: linear-gradient(to right, transparent, var(--card-bg));
+  }
+  :global(body.wallpaper-transparent) .scroll-fade {
+    display: none;
+  }
+  .category-scroll {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .category-scroll::-webkit-scrollbar {
+    display: none;
+  }
+</style>
+
+<script>
+  function getCourseCategoryBarState(bar: HTMLElement, currentUrl: URL) {
+    const pathname = currentUrl.pathname.replace(/\/$/, "");
+    const coursesPath = (bar.getAttribute("data-courses-path") || "/courses/").replace(/\/$/, "");
+    const isCoursesHome = pathname === coursesPath;
+    const activeMajor = currentUrl.searchParams.get("major") || "";
+
+    let currentMajors: string[] = [];
+    try {
+      currentMajors = JSON.parse(bar.getAttribute("data-current-majors-json") || "[]");
+    } catch {
+      const fallback = bar.getAttribute("data-current-course-major") || "";
+      if (fallback) currentMajors = [fallback];
+    }
+
+    return {
+      isCoursesHome,
+      activeMajor,
+      currentMajors,
+    };
+  }
+
+  function setActiveMajor(bar: HTMLElement, currentUrl: URL) {
+    const { isCoursesHome, activeMajor, currentMajors } = getCourseCategoryBarState(bar, currentUrl);
+    const pills = bar.querySelectorAll<HTMLAnchorElement>(".category-pill");
+
+    pills.forEach((pill) => {
+      pill.removeAttribute("data-active");
+      pill.removeAttribute("data-soft-active");
+    });
+
+    if (activeMajor) {
+      pills.forEach((pill) => {
+        if (pill.getAttribute("data-major-name") === activeMajor) {
+          pill.setAttribute("data-active", "");
+        }
+      });
+      return;
+    }
+
+    if (isCoursesHome) {
+      bar.querySelector<HTMLAnchorElement>('.category-pill[data-major-name=""]')
+        ?.setAttribute("data-active", "");
+      return;
+    }
+
+    if (currentMajors.length > 0) {
+      pills.forEach((pill) => {
+        const name = pill.getAttribute("data-major-name") || "";
+        if (name && currentMajors.includes(name)) {
+          pill.setAttribute("data-soft-active", "");
+        }
+      });
+    }
+  }
+
+  function scrollActiveMajorIntoView(bar: HTMLElement, behavior: ScrollBehavior = "smooth") {
+    const activePill =
+      bar.querySelector<HTMLAnchorElement>('.category-pill[data-active]') ||
+      bar.querySelector<HTMLAnchorElement>('.category-pill[data-soft-active]');
+    const scroll = bar.querySelector<HTMLElement>(".category-scroll");
+    if (!activePill || !scroll) return;
+
+    const scrollLeft =
+      activePill.offsetLeft - scroll.offsetLeft - (scroll.clientWidth - activePill.offsetWidth) / 2;
+    scroll.scrollTo({ left: Math.max(0, scrollLeft), behavior });
+  }
+
+  function updateCourseCategoryBar(
+    currentUrl = new URL(window.location.href),
+    options: { scrollBehavior?: ScrollBehavior } = {},
+  ) {
+    const bar = document.getElementById("category-bar");
+    if (!bar || bar.dataset.barType !== "course") return;
+
+    setActiveMajor(bar, currentUrl);
+    scrollActiveMajorIntoView(bar, options.scrollBehavior ?? "smooth");
+    updateScrollHint();
+  }
+
+  function initCourseBarInteractions() {
+    const bar = document.getElementById("category-bar");
+    if (!bar || bar.dataset.barType !== "course" || bar.dataset.clickBound === "true") return;
+
+    bar.dataset.clickBound = "true";
+    bar.addEventListener("click", (event) => {
+      if (!(event.target instanceof Element)) return;
+      const pill = event.target.closest<HTMLAnchorElement>(".category-pill");
+      if (!pill) return;
+
+      if (
+        event.defaultPrevented ||
+        event.button !== 0 ||
+        event.metaKey ||
+        event.ctrlKey ||
+        event.shiftKey ||
+        event.altKey
+      ) {
+        return;
+      }
+
+      const targetUrl = new URL(pill.href, window.location.href);
+      const coursesPath = (bar.getAttribute("data-courses-path") || "/courses/").replace(/\/$/, "");
+      const currentPath = window.location.pathname.replace(/\/$/, "");
+
+      // 若当前在大厅页面 (/courses/)，点击胶囊执行无刷新平滑过滤与 URL 更新
+      if (currentPath === coursesPath) {
+        event.preventDefault();
+        window.history.pushState({}, "", targetUrl.href);
+        const majorName = pill.getAttribute("data-major-name") || "";
+        setActiveMajor(bar, targetUrl);
+        scrollActiveMajorIntoView(bar, "auto");
+        window.dispatchEvent(
+          new CustomEvent("course-major-change", {
+            detail: { major: majorName },
+          }),
+        );
+      }
+    });
+  }
+
+  function initScrollFeatures() {
+    const bar = document.getElementById("category-bar");
+    if (!bar || bar.dataset.barType !== "course") return;
+
+    const scroll = bar.querySelector<HTMLElement>(".category-scroll");
+    if (!scroll || scroll.dataset.featuresBound === "true") return;
+    scroll.dataset.featuresBound = "true";
+
+    scroll.addEventListener(
+      "wheel",
+      (e) => {
+        if (
+          scroll.scrollWidth <= scroll.clientWidth ||
+          e.ctrlKey ||
+          Math.abs(e.deltaX) >= Math.abs(e.deltaY)
+        )
+          return;
+
+        const delta =
+          e.deltaMode === WheelEvent.DOM_DELTA_LINE
+            ? e.deltaY * 16
+            : e.deltaMode === WheelEvent.DOM_DELTA_PAGE
+              ? e.deltaY * scroll.clientWidth
+              : e.deltaY;
+        const maxScrollLeft = scroll.scrollWidth - scroll.clientWidth;
+        const atStart = scroll.scrollLeft <= 1;
+        const atEnd = scroll.scrollLeft >= maxScrollLeft - 1;
+
+        if ((delta < 0 && atStart) || (delta > 0 && atEnd)) return;
+
+        const nextScrollLeft = Math.min(
+          maxScrollLeft,
+          Math.max(0, scroll.scrollLeft + delta),
+        );
+        if (nextScrollLeft === scroll.scrollLeft) return;
+        e.preventDefault();
+        scroll.scrollLeft = nextScrollLeft;
+      },
+      { passive: false },
+    );
+
+    scroll.addEventListener("scroll", updateScrollHint);
+    window.addEventListener("resize", updateScrollHint);
+    updateScrollHint();
+  }
+
+  function updateScrollHint() {
+    const bar = document.getElementById("category-bar");
+    if (!bar || bar.dataset.barType !== "course") return;
+    const scroll = bar.querySelector<HTMLElement>(".category-scroll");
+    const fadeLeft = bar.querySelector<HTMLElement>(".scroll-fade-left");
+    const fadeRight = bar.querySelector<HTMLElement>(".scroll-fade-right");
+    if (!scroll || !fadeLeft || !fadeRight) return;
+
+    const maxScroll = scroll.scrollWidth - scroll.clientWidth;
+    if (maxScroll <= 1) {
+      fadeLeft.removeAttribute("data-visible");
+      fadeRight.removeAttribute("data-visible");
+      return;
+    }
+    if (scroll.scrollLeft > 2) {
+      fadeLeft.setAttribute("data-visible", "");
+    } else {
+      fadeLeft.removeAttribute("data-visible");
+    }
+    if (scroll.scrollLeft < maxScroll - 2) {
+      fadeRight.setAttribute("data-visible", "");
+    } else {
+      fadeRight.removeAttribute("data-visible");
+    }
+  }
+
+  function setup() {
+    updateCourseCategoryBar();
+    initCourseBarInteractions();
+    initScrollFeatures();
+  }
+
+  setup();
+
+  if (!window.__courseCategoryBarInit) {
+    window.__courseCategoryBarInit = true;
+
+    document.addEventListener("astro:page-load", setup);
+    document.addEventListener("swup:contentReplaced", () => {
+      setup();
+      requestAnimationFrame(setup);
+    });
+
+    window.addEventListener("course-major-change", () => {
+      const bar = document.getElementById("category-bar");
+      if (!bar || bar.dataset.barType !== "course") return;
+      const currentUrl = new URL(window.location.href);
+      setActiveMajor(bar, currentUrl);
+      scrollActiveMajorIntoView(bar, "auto");
+    });
+
+    window.addEventListener("popstate", () => {
+      const currentUrl = new URL(window.location.href);
+      updateCourseCategoryBar(currentUrl);
+      const majorName = currentUrl.searchParams.get("major") || "";
+      window.dispatchEvent(
+        new CustomEvent("course-major-change", {
+          detail: { major: majorName },
+        }),
+      );
+    });
+
+    if (window.swup?.hooks) {
+      setupSwupCourseEarlyUpdate();
+    } else {
+      document.addEventListener("swup:enable", setupSwupCourseEarlyUpdate);
+    }
+  }
+
+  function setupSwupCourseEarlyUpdate() {
+    if (!window.swup?.hooks) return;
+    window.swup.hooks.on("visit:start", (visit: any) => {
+      const bar = document.getElementById("category-bar");
+      if (!bar || bar.dataset.barType !== "course") return;
+      const targetUrl = new URL(visit.to.url, window.location.href);
+      setActiveMajor(bar, targetUrl);
+    });
+  }
+</script>

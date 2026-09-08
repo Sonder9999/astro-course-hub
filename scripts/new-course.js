@@ -17,13 +17,14 @@ const args = process.argv.slice(2);
 
 if (args.length === 0) {
 	console.error(`Error: No course name argument provided
-Usage: pnpm new-course -- <CourseName> [semester] [category]`);
+Usage: pnpm new-course -- <CourseName> [semester] [category] [major]`);
 	process.exit(1);
 }
 
 const courseTitle = args[0];
 const semester = args[1] || "大一上";
 const category = args[2] || "专业核心课";
+const major = args[3] || "计算机科学与技术";
 
 let fileName = courseTitle;
 const fileExtensionRegex = /\.(md|mdx)$/i;
@@ -84,6 +85,7 @@ titleEn: ""
 code: ""
 semester: "${semester}"
 category: "${category}"
+major: "${major}"
 tags: ["必修", "含实验"]
 description: "课程简述与学习要点速览。"
 credits: 3.0

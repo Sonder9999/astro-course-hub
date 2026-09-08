@@ -15,7 +15,8 @@
   border-radius: 9999px;
   background: color-mix(in srgb, var(--btn-content) 10%, transparent);
 }
-.category-pill[data-category-name=""] {
+.category-pill[data-category-name=""],
+.category-pill[data-major-name=""] {
   color: var(--primary);
   background: color-mix(in srgb, var(--primary) 8%, transparent);
 }
@@ -52,7 +53,9 @@
   opacity: 0.9;
 }
 .category-pill[data-category-name=""][data-active],
-.category-pill[data-category-name=""][data-active]:hover {
+.category-pill[data-category-name=""][data-active]:hover,
+.category-pill[data-major-name=""][data-active],
+.category-pill[data-major-name=""][data-active]:hover {
   color: white;
 }
 

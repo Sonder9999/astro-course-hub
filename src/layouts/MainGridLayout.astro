@@ -8,6 +8,7 @@ import NavMenuPanel from "@components/layout/NavMenuPanel.astro";
 import SideBar from "@components/layout/SideBar.astro";
 import type { MarkdownHeading } from "astro";
 import FloatingControls from "@/components/controls/FloatingControls.astro";
+import CourseCategoryBar from "@/components/course/CourseCategoryBar.astro";
 import CategoryBar from "@/components/layout/CategoryBar.astro";
 import SidebarColumn from "@/components/layout/SidebarColumn.astro";
 import WallpaperSection from "@/components/layout/WallpaperSection.astro";
@@ -36,6 +37,8 @@ interface Props {
 	ogImageHeight?: number;
 	ogImageAlt?: string;
 	postCategory?: string;
+	isCoursePage?: boolean;
+	currentMajor?: string | string[];
 	headings?: MarkdownHeading[];
 	encrypted?: boolean;
 	bannerPostMeta?: {
@@ -62,6 +65,8 @@ const {
 	ogImageHeight,
 	ogImageAlt,
 	postCategory,
+	isCoursePage,
+	currentMajor,
 	headings = [],
 	encrypted = false,
 	bannerPostMeta,
@@ -70,6 +75,8 @@ const {
 
 const isHomePageCheck = isHomePage(Astro.url.pathname);
 const isPostPage = !!postSlug;
+const isCourseView =
+	isCoursePage ?? (Astro.url.pathname.includes("/courses") || !!currentMajor);
 const shouldRenderCategoryBar = !!siteConfig.categoryBar;
 const navbarWidthFull = siteConfig.navbar.widthFull ?? false;
 
@@ -132,13 +139,22 @@ const {
                     
             {/* 主内容区包装器 - 包含静态栏位和swup容器，作为单个grid item */}
             <div class={staticBarClass}>
-                {/* 分类导航栏 - 全站渲染并显示 */}
-                {shouldRenderCategoryBar && <div id="category-bar-wrapper"><CategoryBar currentPostCategory={postCategory} /></div>}
+                {/* 分类导航栏 - 课程页面渲染专属 CourseCategoryBar，其它页面渲染博客 CategoryBar */}
+                <div id="category-bar-wrapper" class="transition-swup-fade">
+                    {shouldRenderCategoryBar && (
+                        isCourseView ? (
+                            <CourseCategoryBar currentMajor={currentMajor} />
+                        ) : (
+                            <CategoryBar currentPostCategory={postCategory} />
+                        )
+                    )}
+                </div>
                 {/* 主内容区 - 始终渲染，确保 Swup 容器存在 */}
                 <main
                     id="swup-container"
                     class="transition-main"
                     data-current-post-category={postCategory || ""}
+                    data-current-major={Array.isArray(currentMajor) ? currentMajor[0] : currentMajor || ""}
                 >
                 {/* 为每个页面提供一个隐藏的h1标题，用于SEO和可访问性 */}
                 <h1 class="sr-only">{heading || title}</h1>

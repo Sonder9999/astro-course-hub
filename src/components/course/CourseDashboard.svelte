@@ -1,6 +1,7 @@
 <script lang="ts">
 import type {
 	CourseCategoryConfig,
+	CourseMajorConfig,
 	CourseSemesterConfig,
 } from "@/types/course";
 import type { CourseListItem } from "@/utils/course-utils";
@@ -8,14 +9,21 @@ import type { CourseListItem } from "@/utils/course-utils";
 interface Props {
 	courses: CourseListItem[];
 	semesters?: CourseSemesterConfig[];
+	majors?: CourseMajorConfig[];
 	categories?: CourseCategoryConfig[];
 	featuredTags?: string[];
 }
 
-let { courses = [], semesters = [], categories = [] }: Props = $props();
+let {
+	courses = [],
+	semesters = [],
+	majors = [],
+	categories = [],
+}: Props = $props();
 
 // Svelte 5 响应式状态
 let searchQuery = $state("");
+let selectedMajor = $state("");
 let sortBy = $state<"default" | "name">("default");
 let viewMode = $state<"bento" | "list">("bento");
 let sortDropdownOpen = $state(false);
@@ -44,7 +52,7 @@ $effect(() => {
 	};
 });
 
-// 从 URL 读取初始搜索关键字 (例如 ?q=xxx 或 ?tag=xxx)
+// 从 URL 读取初始搜索关键字及专业筛选 (例如 ?q=xxx, ?tag=xxx, ?major=xxx)
 $effect(() => {
 	if (typeof window !== "undefined") {
 		const params = new URLSearchParams(window.location.search);
@@ -52,8 +60,54 @@ $effect(() => {
 		if (initialQuery && !searchQuery) {
 			searchQuery = initialQuery;
 		}
+		const initialMajor = params.get("major");
+		if (initialMajor && !selectedMajor) {
+			selectedMajor = initialMajor;
+		}
 	}
 });
+
+// 监听分类导航栏的专业变更自定义事件与 popstate 事件
+$effect(() => {
+	function handleMajorChange(e: Event) {
+		const customEvent = e as CustomEvent<{ major: string }>;
+		if (customEvent.detail && typeof customEvent.detail.major === "string") {
+			selectedMajor = customEvent.detail.major;
+		}
+	}
+
+	function handlePopState() {
+		const params = new URLSearchParams(window.location.search);
+		selectedMajor = params.get("major") || "";
+		searchQuery = params.get("q") || params.get("tag") || "";
+	}
+
+	window.addEventListener("course-major-change", handleMajorChange);
+	window.addEventListener("popstate", handlePopState);
+	return () => {
+		window.removeEventListener("course-major-change", handleMajorChange);
+		window.removeEventListener("popstate", handlePopState);
+	};
+});
+
+// 选择/重置专业并同步 URL 与分类导航栏
+function selectMajor(majorName: string) {
+	selectedMajor = majorName;
+	if (typeof window !== "undefined") {
+		const url = new URL(window.location.href);
+		if (majorName) {
+			url.searchParams.set("major", majorName);
+		} else {
+			url.searchParams.delete("major");
+		}
+		window.history.pushState({}, "", url.href);
+		window.dispatchEvent(
+			new CustomEvent("course-major-change", {
+				detail: { major: majorName },
+			}),
+		);
+	}
+}
 
 // 学期色标辅助函数
 const getSemesterColor = (semName: string): string => {
@@ -64,11 +118,35 @@ const getSemesterColor = (semName: string): string => {
 	);
 };
 
+// 规范化专业列表
+function normalizeMajors(major: string | string[] | undefined): string[] {
+	if (Array.isArray(major)) return major;
+	return major ? [major] : ["公共课"];
+}
+
+// 专业色标辅助函数
+function getMajorBadgeClass(majorName: string): string {
+	const found = majors.find((m) => m.name === majorName);
+	if (found?.color) return found.color;
+	if (majorName === "公共课") {
+		return "bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border border-indigo-500/30";
+	}
+	return "bg-sky-500/15 text-sky-700 dark:text-sky-300 border border-sky-500/30";
+}
+
 // 过滤与搜索派生状态
 const filteredCourses = $derived.by(() => {
 	const query = searchQuery.trim().toLowerCase();
 
 	const list = courses.filter((c) => {
+		// 专业过滤
+		if (selectedMajor) {
+			const cMajors = normalizeMajors(c.major);
+			if (!cMajors.includes(selectedMajor)) {
+				return false;
+			}
+		}
+
 		// 搜索关键字过滤
 		if (query) {
 			const matchTitle = c.title.toLowerCase().includes(query);
@@ -81,6 +159,8 @@ const filteredCourses = $derived.by(() => {
 			);
 			const matchCategory = c.category.toLowerCase().includes(query);
 			const matchSemester = c.semester.toLowerCase().includes(query);
+			const cMajors = normalizeMajors(c.major);
+			const matchMajor = cMajors.some((m) => m.toLowerCase().includes(query));
 
 			if (
 				!matchTitle &&
@@ -90,7 +170,8 @@ const filteredCourses = $derived.by(() => {
 				!matchTags &&
 				!matchInstructors &&
 				!matchCategory &&
-				!matchSemester
+				!matchSemester &&
+				!matchMajor
 			) {
 				return false;
 			}
@@ -112,6 +193,7 @@ const filteredCourses = $derived.by(() => {
 function resetFilters() {
 	searchQuery = "";
 	sortBy = "default";
+	selectMajor("");
 }
 </script>
 
@@ -233,16 +315,28 @@ function resetFilters() {
 		<div>
 			共找到 <span class="font-bold text-(--primary)">{filteredCourses.length}</span> 门课程
 		</div>
-		{#if searchQuery}
+		{#if searchQuery || selectedMajor}
 			<div class="flex items-center gap-2 flex-wrap">
-				<span class="text-black/40 dark:text-white/40">搜索关键词：</span>
-				<span class="px-2 py-0.5 rounded-md bg-(--primary)/10 text-(--primary) font-medium">"{searchQuery}"</span>
-				<button
-					onclick={resetFilters}
-					class="text-(--primary) hover:underline cursor-pointer ml-1 font-medium"
-				>
-					清空搜索
-				</button>
+				{#if selectedMajor}
+					<span class="text-black/40 dark:text-white/40">专业：</span>
+					<span class="px-2 py-0.5 rounded-md bg-(--primary)/10 text-(--primary) font-medium">"{selectedMajor}"</span>
+					<button
+						onclick={() => selectMajor("")}
+						class="text-(--primary) hover:underline cursor-pointer font-medium"
+					>
+						全部专业
+					</button>
+				{/if}
+				{#if searchQuery}
+					<span class="text-black/40 dark:text-white/40">搜索：</span>
+					<span class="px-2 py-0.5 rounded-md bg-(--primary)/10 text-(--primary) font-medium">"{searchQuery}"</span>
+					<button
+						onclick={() => (searchQuery = "")}
+						class="text-(--primary) hover:underline cursor-pointer ml-1 font-medium"
+					>
+						清空搜索
+					</button>
+				{/if}
 			</div>
 		{/if}
 	</div>
@@ -277,11 +371,24 @@ function resetFilters() {
 
 					<!-- 卡片主体内容 -->
 					<div class="flex flex-col gap-2.5">
-						<!-- 顶部微标行 (Semester, Category) -->
+						<!-- 顶部微标行 (Semester, Major, Category) -->
 						<div class="flex items-center gap-1.5 flex-wrap text-xs">
 							<span class="px-2 py-0.5 rounded-md font-medium border {getSemesterColor(course.semester)} shrink-0">
 								{course.semester}
 							</span>
+							{#each normalizeMajors(course.major) as m}
+								<button
+									type="button"
+									onclick={(e) => {
+										e.stopPropagation();
+										selectMajor(m);
+									}}
+									class="px-2 py-0.5 rounded-md font-medium shrink-0 cursor-pointer transition-transform hover:scale-105 {getMajorBadgeClass(m)}"
+									title={`筛选 ${m}`}
+								>
+									{m}
+								</button>
+							{/each}
 							<span class="px-2 py-0.5 rounded-md bg-black/4 dark:bg-white/5 text-black/60 dark:text-white/60 shrink-0">
 								{course.category}
 							</span>
@@ -365,6 +472,19 @@ function resetFilters() {
 								<span class="text-xs px-1.5 py-0.2 rounded border {getSemesterColor(course.semester)} shrink-0">
 									{course.semester}
 								</span>
+								{#each normalizeMajors(course.major) as m}
+									<button
+										type="button"
+										onclick={(e) => {
+											e.stopPropagation();
+											selectMajor(m);
+										}}
+										class="text-xs px-1.5 py-0.2 rounded font-medium shrink-0 cursor-pointer {getMajorBadgeClass(m)}"
+										title={`筛选 ${m}`}
+									>
+										{m}
+									</button>
+								{/each}
 								<span class="text-xs px-1.5 py-0.2 rounded bg-black/4 dark:bg-white/5 text-black/60 dark:text-white/60 shrink-0">
 									{course.category}
 								</span>

@@ -47,6 +47,7 @@ type CourseData = {
 	code?: string;
 	semester: string;
 	category: string;
+	major: string | string[];
 	tags: string[];
 	description: string;
 	credits?: number;
@@ -82,6 +83,10 @@ const coursesCollection: ContentCollection<CourseData> = defineCollection({
 		code: z.string().optional().default(""),
 		semester: z.string(),
 		category: z.string(),
+		major: z
+			.union([z.string(), z.array(z.string())])
+			.optional()
+			.default("公共课"),
 		tags: z.array(z.string()).optional().default([]),
 		description: z.string().optional().default(""),
 		credits: z.number().optional().default(3),

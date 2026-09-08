@@ -125,6 +125,7 @@ export default defineConfig({
 			containers: [
 				"#banner-overlay-container",
 				"#banner-dim-container",
+				"#category-bar-wrapper",
 				"#swup-container",
 				"#left-sidebar-dynamic",
 				"#right-sidebar-dynamic",

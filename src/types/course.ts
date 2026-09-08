@@ -10,6 +10,7 @@ export type CourseData = {
 	code?: string; // 课程代码, e.g. "CS201"
 	semester: string; // 开课学期, e.g. "大二上"
 	category: string; // 课程类别, e.g. "专业核心课"
+	major: string | string[]; // 所属专业, e.g. "计算机科学与技术" 或 "公共课"
 	tags: string[]; // 标签, e.g. ["必修", "含实验", "历年卷"]
 	description?: string; // 课程速览/一句话评价
 	credits?: number; // 学分, e.g. 4.0
@@ -37,5 +38,13 @@ export type CourseSemesterConfig = {
 export type CourseCategoryConfig = {
 	name: string;
 	color?: string;
+	description?: string;
+};
+
+export type CourseMajorConfig = {
+	id?: string;
+	name: string;
+	color?: string;
+	badgeColor?: string;
 	description?: string;
 };

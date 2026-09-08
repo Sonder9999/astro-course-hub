@@ -29,6 +29,20 @@ const semConfig = courseConfig.semesters.find(
 const semesterColor =
 	semConfig?.color ||
 	"bg-neutral-500/10 text-neutral-600 dark:text-neutral-300 border-neutral-500/20";
+
+// 专业与色标辅助
+const courseMajors: string[] = Array.isArray(course.data.major)
+	? course.data.major
+	: [course.data.major || "公共课"];
+
+function getMajorBadgeColor(majorName: string): string {
+	const found = courseConfig.majors.find((m) => m.name === majorName);
+	if (found?.color) return found.color;
+	if (majorName === "公共课") {
+		return "bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border-indigo-500/30";
+	}
+	return "bg-sky-500/15 text-sky-700 dark:text-sky-300 border-sky-500/30";
+}
 ---
 
 <MainGridLayout
@@ -36,6 +50,8 @@ const semesterColor =
   description={course.data.description || course.data.title}
   postSlug={removeFileExtension(course.id)}
   headings={headings}
+  isCoursePage={true}
+  currentMajor={course.data.major}
 >
   <!-- KaTeX 数学公式渲染管理器 -->
   <KatexManager slot="head" />
@@ -57,6 +73,14 @@ const semesterColor =
         <span>/</span>
         <a href={url("/courses/")} class="hover:text-(--primary) transition-colors">课程</a>
         <span>/</span>
+        {courseMajors.map((m) => (
+          <>
+            <a href={url(`/courses/?major=${encodeURIComponent(m)}`)} class="hover:text-(--primary) transition-colors text-black/70 dark:text-white/70">
+              {m}
+            </a>
+            <span>/</span>
+          </>
+        ))}
         <span class="text-black/80 dark:text-white/80 font-medium">{course.data.semester}</span>
         <span>/</span>
         <span class="text-(--primary) font-semibold truncate max-w-xs">{course.data.title}</span>
@@ -68,6 +92,14 @@ const semesterColor =
           <span class={`px-2.5 py-1 rounded-lg font-semibold border ${semesterColor}`}>
             {course.data.semester}
           </span>
+          {courseMajors.map((m) => (
+            <a
+              href={url(`/courses/?major=${encodeURIComponent(m)}`)}
+              class={`px-2.5 py-1 rounded-lg font-semibold border transition-transform hover:scale-105 ${getMajorBadgeColor(m)}`}
+            >
+              {m}
+            </a>
+          ))}
           <span class="px-2.5 py-1 rounded-lg bg-black/4 dark:bg-white/5 text-black/70 dark:text-white/70 font-medium">
             {course.data.category}
           </span>

@@ -83,6 +83,8 @@ declare global {
 		__typewriterTextInit?: boolean;
 		/** 分类栏监听器守卫,确保只注册一次 */
 		__categoryBarInit?: boolean;
+		/** 课程分类栏监听器守卫,确保只注册一次 */
+		__courseCategoryBarInit?: boolean;
 		/** 侧边栏目录监听器守卫,确保只注册一次 */
 		__sidebarTOCInit?: boolean;
 		/** 文章封面图监听器守卫,确保只注册一次 */

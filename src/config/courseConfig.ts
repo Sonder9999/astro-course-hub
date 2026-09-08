@@ -1,12 +1,15 @@
 import type {
 	CourseCategoryConfig,
+	CourseMajorConfig,
 	CourseSemesterConfig,
 } from "@/types/course";
 
 export interface CourseSiteConfig {
 	// 学期选项列表（用于首页筛选和归档分类）
 	semesters: CourseSemesterConfig[];
-	// 学科/课程方向分类列表
+	// 培养专业分类列表（用于分类栏及方向面板）
+	majors: CourseMajorConfig[];
+	// 学科/课程性质分类列表
 	categories: CourseCategoryConfig[];
 	// 快捷标签推荐（用于筛选栏快捷点击）
 	featuredTags: string[];
@@ -77,6 +80,31 @@ export const courseConfig: CourseSiteConfig = {
 			name: "通识选修",
 			color:
 				"bg-rose-500/15 text-rose-700 dark:text-rose-300 border-rose-500/30",
+		},
+	],
+	majors: [
+		{
+			name: "公共课",
+			description: "全校通识必修、数学物理等公共基础课",
+			color:
+				"bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border-indigo-500/30",
+		},
+		{
+			name: "计算机科学与技术",
+			description: "计算机科学理论、系统结构与核心软件",
+			color: "bg-sky-500/15 text-sky-700 dark:text-sky-300 border-sky-500/30",
+		},
+		{
+			name: "人工智能",
+			description: "智能系统、前沿机器学习与数据算法",
+			color:
+				"bg-purple-500/15 text-purple-700 dark:text-purple-300 border-purple-500/30",
+		},
+		{
+			name: "软件工程",
+			description: "大型工程架构、系统工程化开发与测试",
+			color:
+				"bg-teal-500/15 text-teal-700 dark:text-teal-300 border-teal-500/30",
 		},
 	],
 	categories: [

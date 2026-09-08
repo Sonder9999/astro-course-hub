@@ -44,6 +44,7 @@ function initialActive(categoryName: string): {
 <div
   class="card-base category-bar p-3 onload-animation"
   id="category-bar"
+  data-bar-type="blog"
   data-home-path={homeUrl}
   data-archive-path={archiveUrl}
   data-current-post-category={currentPostCategory || ""}
@@ -247,7 +248,7 @@ function initialActive(categoryName: string): {
     options: { scrollBehavior?: ScrollBehavior; deferScroll?: boolean } = {},
   ) {
     const bar = document.getElementById("category-bar");
-    if (!bar) return;
+    if (!bar || bar.dataset.barType !== "blog") return;
 
     const swupContainer = document.getElementById("swup-container");
     if (swupContainer) {
@@ -284,7 +285,7 @@ function initialActive(categoryName: string): {
 
   function initCategoryBarInteractions() {
     const bar = document.getElementById("category-bar");
-    if (!bar || bar.dataset.clickBound === "true") return;
+    if (!bar || bar.dataset.barType !== "blog" || bar.dataset.clickBound === "true") return;
 
     bar.dataset.clickBound = "true";
     bar.addEventListener("click", (event) => {
@@ -316,7 +317,7 @@ function initialActive(categoryName: string): {
 
   function initScrollFeatures() {
     const bar = document.getElementById("category-bar");
-    if (!bar) return;
+    if (!bar || bar.dataset.barType !== "blog") return;
 
     const scroll = bar.querySelector<HTMLElement>(".category-scroll");
     if (!scroll) return;
@@ -365,7 +366,7 @@ function initialActive(categoryName: string): {
 
   function updateScrollHint() {
     const bar = document.getElementById("category-bar");
-    if (!bar) return;
+    if (!bar || bar.dataset.barType !== "blog") return;
     const scroll = bar.querySelector<HTMLElement>(".category-scroll");
     const fadeLeft = bar.querySelector<HTMLElement>(".scroll-fade-left");
     const fadeRight = bar.querySelector<HTMLElement>(".scroll-fade-right");
@@ -398,21 +399,23 @@ function initialActive(categoryName: string): {
     }
   }
 
-  updateCategoryBar();
-  initCategoryBarInteractions();
-  initScrollFeatures();
+  function setupCategoryBar() {
+    updateCategoryBar();
+    initCategoryBarInteractions();
+    initScrollFeatures();
+  }
+
+  setupCategoryBar();
+
   // 防止 Swup 切页重跑脚本时重复注册监听器/hooks
   if (!window.__categoryBarInit) {
     window.__categoryBarInit = true;
-    document.addEventListener("astro:page-load", () => {
-      updateCategoryBar();
-      initScrollFeatures();
-    });
+    document.addEventListener("astro:page-load", setupCategoryBar);
     document.addEventListener("swup:contentReplaced", () => {
-      updateCategoryBar();
+      setupCategoryBar();
       // 某些 swup 生命周期下 URL/DOM 状态同步稍晚，下一帧再校正一次避免状态残留
       requestAnimationFrame(() => {
-        updateCategoryBar();
+        setupCategoryBar();
       });
     });
 
@@ -428,7 +431,7 @@ function initialActive(categoryName: string): {
     if (!window.swup?.hooks) return;
     window.swup.hooks.on("visit:start", (visit: any) => {
       const bar = document.getElementById("category-bar");
-      if (!bar) return;
+      if (!bar || bar.dataset.barType !== "blog") return;
       const targetUrl = new URL(visit.to.url, window.location.href);
       setActiveCategory(bar, targetUrl);
     });

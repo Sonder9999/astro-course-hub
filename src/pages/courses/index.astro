@@ -8,12 +8,13 @@ const courses = await getCourseListData();
 const heading = "课程";
 ---
 
-<MainGridLayout title="课程" description="课程资源导航" heading={heading}>
+<MainGridLayout title="课程" description="课程资源导航" heading={heading} isCoursePage={true}>
   <div class="mb-6 onload-animation">
     <CourseDashboard
       client:load
       courses={courses}
       semesters={courseConfig.semesters}
+      majors={courseConfig.majors}
     />
   </div>
 </MainGridLayout>
