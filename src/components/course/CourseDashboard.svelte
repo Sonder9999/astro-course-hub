@@ -24,6 +24,7 @@ let {
 // Svelte 5 响应式状态
 let searchQuery = $state("");
 let selectedMajor = $state("");
+let includePublic = $state(true);
 let sortBy = $state<"default" | "name">("default");
 let viewMode = $state<"bento" | "list">("bento");
 let sortDropdownOpen = $state(false);
@@ -52,7 +53,7 @@ $effect(() => {
 	};
 });
 
-// 从 URL 读取初始搜索关键字及专业筛选 (例如 ?q=xxx, ?tag=xxx, ?major=xxx)
+// 从 URL 读取初始搜索关键字及专业筛选 (例如 ?q=xxx, ?tag=xxx, ?major=xxx, ?public=0)
 $effect(() => {
 	if (typeof window !== "undefined") {
 		const params = new URLSearchParams(window.location.search);
@@ -63,6 +64,10 @@ $effect(() => {
 		const initialMajor = params.get("major");
 		if (initialMajor && !selectedMajor) {
 			selectedMajor = initialMajor;
+		}
+		const publicParam = params.get("public") ?? params.get("include_public");
+		if (publicParam !== null) {
+			includePublic = publicParam !== "0" && publicParam !== "false";
 		}
 	}
 });
@@ -124,6 +129,23 @@ function normalizeMajors(major: string | string[] | undefined): string[] {
 	return major ? [major] : ["公共课"];
 }
 
+// 判断课程是否为公共大类/通识课程
+function isPublicCourse(c: CourseListItem): boolean {
+	const cMajors = normalizeMajors(c.major);
+	return (
+		cMajors.includes("公共课") ||
+		c.category === "学科基础课" ||
+		c.category === "通识教育课"
+	);
+}
+
+// 判断某门课在当前选定专业下是否为“公共大类穿透课”
+function isCrossPublicCourse(c: CourseListItem, activeMajor: string): boolean {
+	if (!activeMajor || activeMajor === "公共课") return false;
+	const cMajors = normalizeMajors(c.major);
+	return !cMajors.includes(activeMajor) && isPublicCourse(c);
+}
+
 const DYNAMIC_PALETTE = [
 	"bg-sky-500/15 text-sky-700 dark:text-sky-300 border border-sky-500/30",
 	"bg-teal-500/15 text-teal-700 dark:text-teal-300 border border-teal-500/30",
@@ -155,11 +177,22 @@ const filteredCourses = $derived.by(() => {
 	const query = searchQuery.trim().toLowerCase();
 
 	const list = courses.filter((c) => {
-		// 专业过滤
+		const cMajors = normalizeMajors(c.major);
+
+		// 专业过滤：支持多对多归属与公共大类课智能穿透
 		if (selectedMajor) {
-			const cMajors = normalizeMajors(c.major);
-			if (!cMajors.includes(selectedMajor)) {
-				return false;
+			if (selectedMajor === "公共课") {
+				if (!isPublicCourse(c)) {
+					return false;
+				}
+			} else {
+				const directMatch = cMajors.includes(selectedMajor);
+				if (!directMatch) {
+					// 若未直接标记该专业，检查是否开启了“同时包含公共基础课”
+					if (!includePublic || !isPublicCourse(c)) {
+						return false;
+					}
+				}
 			}
 		}
 
@@ -175,8 +208,10 @@ const filteredCourses = $derived.by(() => {
 			);
 			const matchCategory = c.category.toLowerCase().includes(query);
 			const matchSemester = c.semester.toLowerCase().includes(query);
-			const cMajors = normalizeMajors(c.major);
 			const matchMajor = cMajors.some((m) => m.toLowerCase().includes(query));
+			const matchPrereq = c.prerequisites.some((p) =>
+				p.toLowerCase().includes(query),
+			);
 
 			if (
 				!matchTitle &&
@@ -187,7 +222,8 @@ const filteredCourses = $derived.by(() => {
 				!matchInstructors &&
 				!matchCategory &&
 				!matchSemester &&
-				!matchMajor
+				!matchMajor &&
+				!matchPrereq
 			) {
 				return false;
 			}
@@ -326,10 +362,31 @@ function resetFilters() {
 		</div>
 	</div>
 
-	<!-- 结果统计提示 -->
-	<div class="flex items-center justify-between text-xs text-black/50 dark:text-white/50 px-1">
-		<div>
-			共找到 <span class="font-bold text-(--primary)">{filteredCourses.length}</span> 门课程
+	<!-- 结果统计提示与公共课包含切换 -->
+	<div class="flex items-center justify-between text-xs text-black/50 dark:text-white/50 px-1 gap-2 flex-wrap">
+		<div class="flex items-center gap-3 flex-wrap">
+			<div>
+				共找到 <span class="font-bold text-(--primary)">{filteredCourses.length}</span> 门课程
+			</div>
+			{#if selectedMajor && selectedMajor !== "公共课"}
+				<button
+					type="button"
+					onclick={() => (includePublic = !includePublic)}
+					class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs transition-colors cursor-pointer border select-none {includePublic
+						? 'bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border-indigo-500/30 font-medium'
+						: 'bg-black/5 dark:bg-white/5 text-black/45 dark:text-white/45 border-transparent hover:text-black/80 dark:hover:text-white/80'}"
+					title="切换是否在当前专业下包含全校公共课与大类基础课"
+				>
+					<svg class="w-3.5 h-3.5 {includePublic ? 'text-indigo-600 dark:text-indigo-400' : 'text-current'}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						{#if includePublic}
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
+						{:else}
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 12H6" />
+						{/if}
+					</svg>
+					<span>包含公共基础课</span>
+				</button>
+			{/if}
 		</div>
 		{#if searchQuery || selectedMajor}
 			<div class="flex items-center gap-2 flex-wrap">
@@ -387,11 +444,16 @@ function resetFilters() {
 
 					<!-- 卡片主体内容 -->
 					<div class="flex flex-col gap-2.5">
-						<!-- 顶部微标行 (Semester, Major, Category) -->
+						<!-- 顶部微标行 (Semester, Major, Category, Cross-Public indicator) -->
 						<div class="flex items-center gap-1.5 flex-wrap text-xs">
 							<span class="px-2 py-0.5 rounded-md font-medium border {getSemesterColor(course.semester)} shrink-0">
 								{course.semester}
 							</span>
+							{#if isCrossPublicCourse(course, selectedMajor)}
+								<span class="px-2 py-0.5 rounded-md font-semibold text-[11px] bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border border-indigo-500/30 shrink-0">
+									公共基础
+								</span>
+							{/if}
 							{#each normalizeMajors(course.major) as m}
 								<button
 									type="button"
@@ -433,6 +495,30 @@ function resetFilters() {
 							<p class="text-xs sm:text-sm text-black/65 dark:text-white/65 line-clamp-2 leading-relaxed">
 								{course.description}
 							</p>
+						{/if}
+
+						<!-- 先修课程提示 -->
+						{#if course.prerequisites && course.prerequisites.length > 0}
+							<div class="flex items-center gap-1.5 text-xs text-black/55 dark:text-white/55 flex-wrap mt-0.5">
+								<span class="text-[10px] px-1.5 py-0.2 rounded font-medium bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30 shrink-0">
+									先修建议
+								</span>
+								<div class="flex items-center gap-1 flex-wrap text-[11px] text-black/65 dark:text-white/65">
+									{#each course.prerequisites as prereq}
+										<button
+											type="button"
+											onclick={(e) => {
+												e.stopPropagation();
+												searchQuery = prereq;
+											}}
+											class="hover:text-(--primary) hover:underline cursor-pointer transition-colors"
+											title={`检索先修课: ${prereq}`}
+										>
+											{prereq}
+										</button>
+									{/each}
+								</div>
+							</div>
 						{/if}
 					</div>
 
@@ -488,6 +574,11 @@ function resetFilters() {
 								<span class="text-xs px-1.5 py-0.2 rounded border {getSemesterColor(course.semester)} shrink-0">
 									{course.semester}
 								</span>
+								{#if isCrossPublicCourse(course, selectedMajor)}
+									<span class="text-xs px-1.5 py-0.2 rounded font-semibold bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border border-indigo-500/30 shrink-0">
+										公共基础
+									</span>
+								{/if}
 								{#each normalizeMajors(course.major) as m}
 									<button
 										type="button"
@@ -508,6 +599,16 @@ function resetFilters() {
 							{#if course.description}
 								<div class="text-xs text-black/50 dark:text-white/50 truncate mt-1">
 									{course.description}
+								</div>
+							{/if}
+							{#if course.prerequisites && course.prerequisites.length > 0}
+								<div class="flex items-center gap-1.5 text-[11px] text-black/55 dark:text-white/55 flex-wrap mt-1">
+									<span class="text-[10px] px-1 py-0.1 rounded font-medium bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30 shrink-0">
+										先修
+									</span>
+									<span class="truncate">
+										{course.prerequisites.join("、")}
+									</span>
 								</div>
 							{/if}
 						</div>

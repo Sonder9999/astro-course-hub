@@ -24,7 +24,18 @@ Usage: pnpm new-course -- <CourseName> [semester] [category] [major]`);
 const courseTitle = args[0];
 const semester = args[1] || "大一上";
 const category = args[2] || "专业核心课";
-const major = args[3] || "计算机科学与技术";
+const rawMajor = args[3] || "计算机科学与技术";
+const majorList = rawMajor.includes(",")
+	? rawMajor
+			.split(",")
+			.map((s) => s.trim())
+			.filter(Boolean)
+	: [rawMajor.trim()];
+
+const majorYaml =
+	majorList.length > 1
+		? `major:\n${majorList.map((m) => `  - "${m}"`).join("\n")}`
+		: `major: "${majorList[0]}" # 若属于多个专业可改为列表: ["计算机科学与技术", "软件工程"]`;
 
 let fileName = courseTitle;
 const fileExtensionRegex = /\.(md|mdx)$/i;
@@ -85,7 +96,7 @@ titleEn: ""
 code: ""
 semester: "${semester}"
 category: "${category}"
-major: "${major}"
+${majorYaml}
 tags: ["必修", "含实验"]
 description: "课程简述与学习要点速览。"
 credits: 3.0

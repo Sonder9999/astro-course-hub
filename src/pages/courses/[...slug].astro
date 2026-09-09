@@ -146,6 +146,47 @@ function getMajorBadgeColor(majorName: string): string {
         </p>
       )}
 
+      <!-- 课程元数据与前置先修依赖 (Prerequisites) -->
+      {(course.data.prerequisites?.length > 0 || course.data.credits || course.data.hours) && (
+        <div class="flex items-center justify-between gap-3 flex-wrap text-xs text-black/65 dark:text-white/65 py-2.5 px-3.5 rounded-xl bg-black/3 dark:bg-white/3 border border-black/5 dark:border-white/5">
+          <div class="flex items-center gap-3 flex-wrap">
+            {course.data.credits && (
+              <div class="flex items-center gap-1">
+                <span class="text-black/40 dark:text-white/40">学分:</span>
+                <span class="font-semibold text-black/85 dark:text-white/85">{course.data.credits} 学分</span>
+              </div>
+            )}
+            {course.data.hours && (
+              <div class="flex items-center gap-1">
+                <span class="text-black/40 dark:text-white/40">学时:</span>
+                <span class="font-semibold text-black/85 dark:text-white/85">{course.data.hours} 课时</span>
+              </div>
+            )}
+          </div>
+          {course.data.prerequisites?.length > 0 && (
+            <div class="flex items-center gap-1.5 flex-wrap">
+              <span class="px-1.5 py-0.5 rounded font-medium bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30 text-[11px]">
+                推荐先修
+              </span>
+              <div class="flex items-center gap-1 flex-wrap font-medium">
+                {course.data.prerequisites.map((p: string, idx: number) => (
+                  <>
+                    <a
+                      href={url(`/courses/?q=${encodeURIComponent(p)}`)}
+                      class="text-(--primary) hover:underline"
+                      title={`在课程大纲中检索先修课: ${p}`}
+                    >
+                      {p}
+                    </a>
+                    {idx < course.data.prerequisites.length - 1 && <span class="text-black/30 dark:text-white/30">、</span>}
+                  </>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
       <!-- 课程标签与 GitHub 仓库操作条 -->
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-3 border-t border-black/5 dark:border-white/5">
         <!-- 标签 -->

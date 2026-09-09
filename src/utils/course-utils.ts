@@ -254,8 +254,33 @@ export async function getRelatedCourses(
 			const cMajors: string[] = Array.isArray(c.data.major)
 				? c.data.major
 				: [c.data.major || "公共课"];
-			if (cMajors.some((m: string) => currentMajors.includes(m))) score += 2.5;
+			const sharedMajorsCount = cMajors.filter((m: string) =>
+				currentMajors.includes(m),
+			).length;
+			if (sharedMajorsCount > 0) {
+				score += 2.5 + (sharedMajorsCount - 1) * 1.5;
+			}
 			if (c.data.category === current.data.category) score += 2;
+
+			// 先修/后置依赖关系打分 (知识脉络衔接)
+			const currentPrereqs = current.data.prerequisites || [];
+			const targetPrereqs = c.data.prerequisites || [];
+			if (
+				currentPrereqs.some(
+					(p) => c.data.title.includes(p) || p.includes(c.data.title),
+				)
+			) {
+				score += 4; // c 是当前课程的先修前置课
+			}
+			if (
+				targetPrereqs.some(
+					(p) =>
+						current.data.title.includes(p) || p.includes(current.data.title),
+				)
+			) {
+				score += 4; // 当前课程是 c 的先修课 (后续进阶课)
+			}
+
 			const sharedTags = (c.data.tags || []).filter((t) =>
 				(current.data.tags || []).includes(t),
 			);
