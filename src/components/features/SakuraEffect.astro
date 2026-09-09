@@ -11,6 +11,7 @@
 		SakuraManagerLike,
 		SakuraWorkerOutboundMessage,
 	} from "@/types/sakura-worker";
+	import { url } from "@/utils/url-utils";
 
 	// ===========================================================================
 	// 主线程回退实现(不支持 OffscreenCanvas 时使用)
@@ -213,7 +214,7 @@
 
 			try {
 				this.img = new Image();
-				this.img.src = "/assets/images/effects/sakura.png";
+				this.img.src = url("/assets/images/effects/sakura.png");
 
 				await new Promise<void>((resolve, reject) => {
 					if (!this.img) {
@@ -426,6 +427,7 @@
 						canvas: offscreen,
 						width: window.innerWidth,
 						height: window.innerHeight,
+						imageUrl: url("/assets/images/effects/sakura.png"),
 					},
 					[offscreen],
 				);

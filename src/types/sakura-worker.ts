@@ -13,6 +13,7 @@ export type SakuraWorkerInboundMessage =
 			canvas: OffscreenCanvas;
 			width: number;
 			height: number;
+			imageUrl?: string;
 	  }
 	| { type: "start" }
 	| { type: "stop" }
