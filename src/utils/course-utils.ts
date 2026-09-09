@@ -155,8 +155,10 @@ export async function getCourseCategories(): Promise<CountItem[]> {
 }
 
 /**
- * 获取所有培养专业及其课程统计
- * 规则：按 courseConfig.majors 顺序优先排列（公共课通常第一位），未显式声明的专业按数量降序排列
+ * 获取所有培养专业/学科分类及其课程统计
+ * 规则：完全从实际 markdown 课程数据动态提取（同博客分类模式一致）；
+ * 仅保留实际课程数 > 0 的学科/专业；若某学科没有课程，则不显示；
+ * 如果存在“公共课”，优先置前；配置文件中声明的专业（若有实际课程）优先按配置顺序排；其余动态学科按数量降序排
  */
 export async function getCourseMajors(): Promise<CountItem[]> {
 	const courses = await getSortedCourses();
@@ -166,31 +168,45 @@ export async function getCourseMajors(): Promise<CountItem[]> {
 		const rawMajor = c.data.major;
 		const majors = Array.isArray(rawMajor) ? rawMajor : [rawMajor || "公共课"];
 		for (const m of majors) {
-			const trimmed = m.trim();
+			const trimmed = typeof m === "string" ? m.trim() : String(m).trim();
 			if (trimmed) {
 				countMap.set(trimmed, (countMap.get(trimmed) || 0) + 1);
 			}
 		}
 	}
 
-	const configuredMajors = (courseConfig.majors || []).map((m) => m.name);
 	const result: CountItem[] = [];
 
-	// 先按配置表顺序排
-	for (const name of configuredMajors) {
+	// 若存在“公共课”且数量 > 0，优先排第一位
+	const publicCount = countMap.get("公共课");
+	if (publicCount && publicCount > 0) {
 		result.push({
-			name,
-			count: countMap.get(name) || 0,
+			name: "公共课",
+			count: publicCount,
 		});
-		countMap.delete(name);
+		countMap.delete("公共课");
 	}
 
-	// 剩余未在配置表中声明的专业按数量降序排
+	// 如果配置文件中定义了排序偏好，仅对实际存在课程（count > 0）的专业按配置顺序优先排
+	const configuredMajors = (courseConfig.majors || []).map((m) => m.name);
+	for (const name of configuredMajors) {
+		const count = countMap.get(name);
+		if (count && count > 0) {
+			result.push({ name, count });
+			countMap.delete(name);
+		}
+	}
+
+	// 其余完全从 markdown 动态提取出的学科按课程数量降序排，数量相同按名称排序
 	const remaining: CountItem[] = [];
 	for (const [name, count] of countMap.entries()) {
-		remaining.push({ name, count });
+		if (count > 0) {
+			remaining.push({ name, count });
+		}
 	}
-	remaining.sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
+	remaining.sort(
+		(a, b) => b.count - a.count || a.name.localeCompare(b.name, "zh-CN"),
+	);
 
 	return [...result, ...remaining];
 }

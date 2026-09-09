@@ -40,6 +40,7 @@ function initialActive(majorName: string): {
 }
 ---
 
+{totalCourses > 0 && (
 <div
   class="card-base category-bar p-3 onload-animation"
   id="category-bar"
@@ -64,55 +65,58 @@ function initialActive(majorName: string): {
       <span class="pill-count">{totalCourses}</span>
     </a>
 
-    <div class="category-divider shrink-0"></div>
+    {majors.length > 0 && (
+      <div class="category-divider shrink-0"></div>
 
-    <!-- 专业滚动区 -->
-    <div class="scroll-area relative flex items-center">
-      <div class="scroll-fade scroll-fade-left" aria-hidden="true"></div>
-      <button
-        type="button"
-        class="category-nav-btn category-nav-left"
-        aria-label="向左滚动"
-        tabindex="-1"
-      >
-        <Icon name="material-symbols:chevron-left" class="text-xl" />
-      </button>
+      <!-- 专业滚动区 -->
+      <div class="scroll-area relative flex items-center">
+        <div class="scroll-fade scroll-fade-left" aria-hidden="true"></div>
+        <button
+          type="button"
+          class="category-nav-btn category-nav-left"
+          aria-label="向左滚动"
+          tabindex="-1"
+        >
+          <Icon name="material-symbols:chevron-left" class="text-xl" />
+        </button>
 
-      <div class="category-scroll flex gap-2 overflow-x-auto w-full">
-        {
-          majors.map((m) => {
-            const active = initialActive(m.name);
-            const majorUrl = `${coursesUrl}?major=${encodeURIComponent(m.name)}`;
-            return (
-              <a
-                href={majorUrl}
-                class="category-pill focus-ring-inset text-sm px-4 py-1.5 whitespace-nowrap shrink-0
-                       transition-colors duration-150 ease-out flex items-center justify-center"
-                data-major-name={m.name}
-                data-active={active.active ? "" : undefined}
-                data-soft-active={active.soft ? "" : undefined}
-                draggable="false"
-              >
-                {m.name}
-                <span class="pill-count">{m.count}</span>
-              </a>
-            );
-          })
-        }
+        <div class="category-scroll flex gap-2 overflow-x-auto w-full">
+          {
+            majors.map((m) => {
+              const active = initialActive(m.name);
+              const majorUrl = `${coursesUrl}?major=${encodeURIComponent(m.name)}`;
+              return (
+                <a
+                  href={majorUrl}
+                  class="category-pill focus-ring-inset text-sm px-4 py-1.5 whitespace-nowrap shrink-0
+                         transition-colors duration-150 ease-out flex items-center justify-center"
+                  data-major-name={m.name}
+                  data-active={active.active ? "" : undefined}
+                  data-soft-active={active.soft ? "" : undefined}
+                  draggable="false"
+                >
+                  {m.name}
+                  <span class="pill-count">{m.count}</span>
+                </a>
+              );
+            })
+          }
+        </div>
+
+        <button
+          type="button"
+          class="category-nav-btn category-nav-right"
+          aria-label="向右滚动"
+          tabindex="-1"
+        >
+          <Icon name="material-symbols:chevron-right" class="text-xl" />
+        </button>
+        <div class="scroll-fade scroll-fade-right" aria-hidden="true"></div>
       </div>
-
-      <button
-        type="button"
-        class="category-nav-btn category-nav-right"
-        aria-label="向右滚动"
-        tabindex="-1"
-      >
-        <Icon name="material-symbols:chevron-right" class="text-xl" />
-      </button>
-      <div class="scroll-fade scroll-fade-right" aria-hidden="true"></div>
-    </div>
+    )}
   </div>
 </div>
+)}
 
 <style>
   .category-bar .category-pill {
