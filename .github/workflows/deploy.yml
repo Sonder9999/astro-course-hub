@@ -3,7 +3,12 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches: [ master, main ]
-  workflow_dispatch:
+  schedule:
+    # 每天北京时间凌晨 03:00（UTC 19:00）自动触发拉取远端最新课程资料并部署
+    - cron: '0 19 * * *'
+  workflow_dispatch: # 随时在 GitHub 网页一键手动触发构建与部署
+  repository_dispatch: # 支持由外部课程仓库 Webhook 触发
+    types: [ sync-courses, deploy ]
 
 # Pages 部署需要的权限
 permissions:
@@ -37,8 +42,11 @@ jobs:
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
       
-      - name: Build site
+      - name: Build site (Sync remote courses & build)
         run: pnpm run build
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN || secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Create .nojekyll file
         run: touch dist/.nojekyll

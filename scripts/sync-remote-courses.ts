@@ -82,10 +82,26 @@ async function syncRemoteCourses(): Promise<void> {
 				fs.rmSync(cloneDir, { recursive: true, force: true });
 			}
 
+			if (!meta.remoteRepo) continue;
+
 			console.log(`  [clone] ${meta.name} (${id}) from ${meta.remoteRepo}`);
+
+			// 如果提供了 GitHub Token，注入鉴权以提升限流配额并支持私有仓库
+			const token = process.env.GH_TOKEN || process.env.GITHUB_TOKEN;
+			let authRepoUrl = meta.remoteRepo;
+			if (token && authRepoUrl.startsWith("https://github.com/")) {
+				authRepoUrl = authRepoUrl.replace(
+					"https://github.com/",
+					`https://x-access-token:${token}@github.com/`,
+				);
+			}
+
 			execSync(
-				`git clone --depth 1 --branch ${branch} --single-branch "${meta.remoteRepo}" "${cloneDir}"`,
-				{ stdio: "pipe" },
+				`git clone --depth 1 --branch ${branch} --single-branch --quiet "${authRepoUrl}" "${cloneDir}"`,
+				{
+					stdio: "pipe",
+					timeout: 90000, // 90 秒超时保护
+				},
 			);
 
 			// 清理 .git 目录
@@ -118,12 +134,17 @@ async function syncRemoteCourses(): Promise<void> {
 			results.push({ subjectId: id, status: "cloned", fileCount });
 			console.log(`  [done] ${meta.name}: ${fileCount} file(s) synced\n`);
 		} catch (error) {
+			const rawMsg = (error as Error).message || "";
+			const safeMsg = rawMsg.replace(
+				/x-access-token:[^@]+@/g,
+				"x-access-token:***@",
+			);
 			results.push({
 				subjectId: id,
 				status: "error",
-				error: (error as Error).message,
+				error: safeMsg,
 			});
-			console.error(`  [error] ${meta.name}: ${(error as Error).message}\n`);
+			console.error(`  [error] ${meta.name}: ${safeMsg}\n`);
 		}
 	}
 
