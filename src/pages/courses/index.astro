@@ -1,10 +1,13 @@
 ---
 import CourseDashboard from "@/components/course/CourseDashboard.svelte";
-import { courseConfig } from "@/config";
+import { courseArchiveConfig, courseConfig } from "@/config";
 import MainGridLayout from "@/layouts/MainGridLayout.astro";
-import { getCourseListData } from "@/utils/course-utils";
+import { scanDirectory } from "@/plugins/vite-plugin-course-archive";
+import { getCourseArchiveListData } from "@/utils/course-archive";
+import "katex/dist/katex.min.css";
 
-const courses = await getCourseListData();
+const courses = getCourseArchiveListData();
+const initialTree = scanDirectory(courseArchiveConfig.contentDir);
 const heading = "课程";
 ---
 
@@ -13,6 +16,7 @@ const heading = "课程";
     <CourseDashboard
       client:load
       courses={courses}
+      initialTree={initialTree}
       semesters={courseConfig.semesters}
       majors={courseConfig.majors}
     />

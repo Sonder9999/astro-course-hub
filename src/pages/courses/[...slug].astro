@@ -1,298 +1,313 @@
 ---
-import { render } from "astro:content";
-import Markdown from "@components/common/Markdown.astro";
-import KatexManager from "@components/features/KatexManager.astro";
-import MainGridLayout from "@layouts/MainGridLayout.astro";
-import { courseConfig } from "@/config/courseConfig";
-import { getRelatedCourses, getSortedCourses } from "@/utils/course-utils";
-import { removeFileExtension, url } from "@/utils/url-utils";
+import fs from "node:fs";
+import path from "node:path";
+import { createMarkdownProcessor } from "@astrojs/markdown-remark";
+import matter from "gray-matter";
+import katex from "katex";
+import rehypeKatex from "rehype-katex";
+import remarkMath from "remark-math";
+import "katex/dist/contrib/mhchem.mjs";
+import rehypeAutolinkHeadings from "rehype-autolink-headings";
+import rehypeCallouts from "rehype-callouts";
+import rehypeSlug from "rehype-slug";
+import Markdown from "@/components/common/Markdown.astro";
+import KatexManager from "@/components/features/KatexManager.astro";
+import { courseArchiveConfig, getSubjectMeta } from "@/config";
+import MainGridLayout from "@/layouts/MainGridLayout.astro";
+import { formatDateToYYYYMMDD } from "@/utils/date-utils";
+import { url } from "@/utils/url-utils";
 
 export async function getStaticPaths() {
-	const courses = await getSortedCourses();
-	return courses.map((course) => {
-		const slug = removeFileExtension(course.id);
+	function scan(
+		dir: string,
+		baseRel = "",
+	): Array<{ relPath: string; fullPath: string }> {
+		if (!fs.existsSync(dir)) return [];
+		const entries = fs.readdirSync(dir, { withFileTypes: true });
+		const result: Array<{ relPath: string; fullPath: string }> = [];
+
+		for (const entry of entries) {
+			if (
+				entry.name.startsWith(".") ||
+				entry.name === "node_modules" ||
+				entry.name === "dist"
+			) {
+				continue;
+			}
+
+			const rel = baseRel ? `${baseRel}/${entry.name}` : entry.name;
+			const full = path.join(dir, entry.name);
+
+			if (entry.isDirectory()) {
+				result.push(...scan(full, rel));
+			} else if (/\.(md|markdown)$/i.test(entry.name)) {
+				result.push({
+					relPath: rel.replace(/\\/g, "/"),
+					fullPath: full.replace(/\\/g, "/"),
+				});
+			}
+		}
+
+		return result;
+	}
+
+	const targetDir = courseArchiveConfig.contentDir;
+	const files = scan(targetDir);
+
+	return files.map((file) => {
+		const slug = file.relPath.replace(/\.(md|markdown)$/i, "");
 		return {
 			params: { slug },
-			props: { course },
+			props: {
+				relPath: file.relPath,
+				fullPath: file.fullPath,
+			},
 		};
 	});
 }
 
-const { course } = Astro.props;
-const { Content, headings } = await render(course);
-const relatedCourses = await getRelatedCourses(course, 4);
+const { relPath, fullPath } = Astro.props;
+const slug = Astro.params.slug;
 
-// 学期颜色辅助
-const semConfig = courseConfig.semesters.find(
-	(s) => s.name === course.data.semester,
-);
-const semesterColor =
-	semConfig?.color ||
-	"bg-neutral-500/10 text-neutral-600 dark:text-neutral-300 border-neutral-500/20";
+const rawFile = fs.readFileSync(fullPath, "utf-8");
+const { data: frontmatter, content: markdownBody } = matter(rawFile);
 
-// 专业与色标辅助
-const courseMajors: string[] = Array.isArray(course.data.major)
-	? course.data.major
-	: [course.data.major || "公共课"];
+// 解析学科、分类及子路径
+const pathSegments = relPath.split("/");
+const subjectId = pathSegments[0];
+const meta = getSubjectMeta(subjectId);
+const subDir =
+	pathSegments.length > 2 ? pathSegments.slice(1, -1).join("/") : "";
+const filename = pathSegments[pathSegments.length - 1];
+const cleanFilename = filename.replace(/\.(md|markdown)$/i, "");
 
-const DYNAMIC_PALETTE = [
-	"bg-sky-500/15 text-sky-700 dark:text-sky-300 border border-sky-500/30",
-	"bg-teal-500/15 text-teal-700 dark:text-teal-300 border border-teal-500/30",
-	"bg-purple-500/15 text-purple-700 dark:text-purple-300 border border-purple-500/30",
-	"bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30",
-	"bg-rose-500/15 text-rose-700 dark:text-rose-300 border border-rose-500/30",
-	"bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30",
-	"bg-cyan-500/15 text-cyan-700 dark:text-cyan-300 border border-cyan-500/30",
-	"bg-violet-500/15 text-violet-700 dark:text-violet-300 border border-violet-500/30",
-];
-
-function getMajorBadgeColor(majorName: string): string {
-	const found = (courseConfig.majors || []).find((m) => m.name === majorName);
-	if (found?.color) return found.color;
-	if (majorName === "公共课") {
-		return "bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border-indigo-500/30";
+// 解析文章标题
+let docTitle = frontmatter.title;
+if (!docTitle) {
+	const h1Match = markdownBody.match(/^#\s+(.+)$/m);
+	if (h1Match) {
+		docTitle = h1Match[1].replace(/^[#\s]+/, "").trim();
+	} else {
+		docTitle = cleanFilename;
 	}
-	let hash = 0;
-	for (let i = 0; i < majorName.length; i++) {
-		hash = (hash << 5) - hash + majorName.charCodeAt(i);
-		hash |= 0;
-	}
-	return DYNAMIC_PALETTE[Math.abs(hash) % DYNAMIC_PALETTE.length];
 }
+
+// 统计字数与预计阅读时间
+const plainText = markdownBody
+	.replace(/```[\s\S]*?```/g, "")
+	.replace(/<[^>]+>/g, "");
+const wordCount = plainText.length;
+const readMinutes = Math.max(1, Math.ceil(wordCount / 350));
+
+// 文件修改时间
+let updateDate = new Date();
+try {
+	const stat = fs.statSync(fullPath);
+	updateDate = stat.mtime;
+} catch {}
+const formattedDate = formatDateToYYYYMMDD(updateDate);
+
+// 构建与 Firefly 完全同构的 Markdown 处理器
+const processor = await createMarkdownProcessor({
+	remarkPlugins: [remarkMath],
+	rehypePlugins: [
+		[
+			rehypeKatex,
+			{
+				katex,
+				throwOnError: false,
+				errorColor: "#e11d48",
+				strict: "warn",
+			},
+		],
+		rehypeSlug,
+		rehypeCallouts,
+		[
+			rehypeAutolinkHeadings,
+			{
+				behavior: "append",
+				properties: {
+					className: ["anchor"],
+					ariaHidden: "true",
+					tabIndex: -1,
+				},
+				content: {
+					type: "element",
+					tagName: "span",
+					properties: { className: ["anchor-icon"] },
+					children: [{ type: "text", value: "#" }],
+				},
+			},
+		],
+	],
+});
+
+const renderResult = await processor.render(markdownBody);
+let renderedHtml = renderResult.code;
+
+// 将相对路径图片智能重写为 courseArchiveConfig.assetsPrefix/...
+const docDir = relPath.includes("/")
+	? relPath.substring(0, relPath.lastIndexOf("/"))
+	: "";
+renderedHtml = renderedHtml.replace(
+	/<img\s+([^>]*?)src=["']([^"']+)["']/gi,
+	(match, before, src) => {
+		if (
+			src.startsWith("http://") ||
+			src.startsWith("https://") ||
+			src.startsWith("//") ||
+			src.startsWith("data:") ||
+			src.startsWith(courseArchiveConfig.assetsPrefix)
+		) {
+			return match;
+		}
+		const combined = src.startsWith("/")
+			? src.slice(1)
+			: docDir
+				? `${docDir}/${src}`
+				: src;
+		const parts = combined.split("/");
+		const stack: string[] = [];
+		for (const p of parts) {
+			if (p === "" || p === ".") continue;
+			if (p === "..") {
+				stack.pop();
+			} else {
+				stack.push(p);
+			}
+		}
+		const resolvedUrl = url(
+			`${courseArchiveConfig.assetsPrefix}/${encodeURI(stack.join("/"))}`,
+		);
+		return `<img ${before}src="${resolvedUrl}"`;
+	},
+);
+
+const headings = renderResult.metadata?.headings || [];
+const subjectName = meta.name || subjectId;
 ---
 
 <MainGridLayout
-  title={course.data.title}
-  description={course.data.description || course.data.title}
-  postSlug={removeFileExtension(course.id)}
+  title={`${docTitle} - ${subjectName}`}
   headings={headings}
+  postSlug={slug}
   isCoursePage={true}
-  currentMajor={course.data.major}
+  heading="课程"
 >
-  <!-- KaTeX 数学公式渲染管理器 -->
   <KatexManager slot="head" />
 
-  <div class="flex flex-col gap-6 w-full">
-    <!-- 课程头部大卡片 (Course Hero Header Card) -->
-    <div class="card-base p-6 md:p-8 rounded-2xl flex flex-col gap-5 border border-black/5 dark:border-white/5 onload-animation relative overflow-hidden">
-      <!-- 装饰水印 -->
-      <div class="absolute -right-8 -bottom-8 w-40 h-40 rounded-full bg-(--primary)/5 pointer-events-none"></div>
+  <div class="flex flex-col gap-4 w-full mb-6">
+    <!-- 顶部操作与面包屑溯源导航 -->
+    <div class="flex items-center justify-between gap-3 flex-wrap">
+      <!-- 返回学科按钮 -->
+      <a
+        href={url(`/courses/?subject=${encodeURIComponent(subjectId)}`)}
+        class="px-3.5 py-1.5 rounded-xl bg-black/5 dark:bg-white/10 hover:bg-(--primary) hover:text-white text-xs font-semibold transition-all inline-flex items-center gap-1.5 group/btn cursor-pointer no-underline text-black/75 dark:text-white/75"
+        title={`返回 ${subjectName} 目录`}
+      >
+        <svg class="w-4 h-4 transition-transform group-hover/btn:-translate-x-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+        </svg>
+        <span>返回 {subjectName} 归档</span>
+      </a>
 
-      <!-- 面包屑导航 -->
-      <nav class="flex items-center gap-2 text-xs text-black/50 dark:text-white/50 flex-wrap" aria-label="Breadcrumb">
-        <a href={url("/")} class="hover:text-(--primary) transition-colors flex items-center gap-1">
-          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-          </svg>
-          <span>首页</span>
-        </a>
-        <span>/</span>
+      <!-- 面包屑导航条 -->
+      <nav class="flex items-center gap-1.5 text-xs text-50 flex-wrap" aria-label="Breadcrumb">
+        <a href={url("/")} class="hover:text-(--primary) transition-colors">首页</a>
+        <span class="text-30">/</span>
         <a href={url("/courses/")} class="hover:text-(--primary) transition-colors">课程</a>
-        <span>/</span>
-        {courseMajors.map((m) => (
+        <span class="text-30">/</span>
+        <a href={url(`/courses/?subject=${encodeURIComponent(subjectId)}`)} class="hover:text-(--primary) font-semibold text-(--primary) transition-colors">
+          {subjectName}
+        </a>
+        {subDir && (
           <>
-            <a href={url(`/courses/?major=${encodeURIComponent(m)}`)} class="hover:text-(--primary) transition-colors text-black/70 dark:text-white/70">
-              {m}
-            </a>
-            <span>/</span>
+            <span class="text-30">/</span>
+            <span class="text-60">{subDir}</span>
           </>
-        ))}
-        <span class="text-black/80 dark:text-white/80 font-medium">{course.data.semester}</span>
-        <span>/</span>
-        <span class="text-(--primary) font-semibold truncate max-w-xs">{course.data.title}</span>
+        )}
       </nav>
-
-      <!-- 顶部标签徽章行 -->
-      <div class="flex items-center justify-between gap-3 flex-wrap">
-        <div class="flex items-center gap-2 flex-wrap text-xs">
-          <span class={`px-2.5 py-1 rounded-lg font-semibold border ${semesterColor}`}>
-            {course.data.semester}
-          </span>
-          {courseMajors.map((m) => (
-            <a
-              href={url(`/courses/?major=${encodeURIComponent(m)}`)}
-              class={`px-2.5 py-1 rounded-lg font-semibold border transition-transform hover:scale-105 ${getMajorBadgeColor(m)}`}
-            >
-              {m}
-            </a>
-          ))}
-          <span class="px-2.5 py-1 rounded-lg bg-black/4 dark:bg-white/5 text-black/70 dark:text-white/70 font-medium">
-            {course.data.category}
-          </span>
-        </div>
-      </div>
-
-      <!-- 课程主标题与英文名 (Pagefind 核心索引字段) -->
-      <div>
-        <h1
-          data-pagefind-body
-          data-pagefind-weight="10"
-          data-pagefind-meta="title"
-          class="text-2xl md:text-3.5xl font-black text-black/95 dark:text-white/95 leading-tight mb-2"
-        >
-          {course.data.title}
-        </h1>
-        {course.data.titleEn && (
-          <div class="text-sm md:text-base text-black/50 dark:text-white/50 font-medium">
-            {course.data.titleEn}
-          </div>
-        )}
-      </div>
-
-      <!-- 课程简要速览 -->
-      {course.data.description && (
-        <p class="text-sm text-black/75 dark:text-white/75 leading-relaxed bg-(--primary)/5 p-3 rounded-xl border-l-3 border-(--primary)">
-          {course.data.description}
-        </p>
-      )}
-
-      <!-- 课程元数据与前置先修依赖 (Prerequisites) -->
-      {(course.data.prerequisites?.length > 0 || course.data.credits || course.data.hours) && (
-        <div class="flex items-center justify-between gap-3 flex-wrap text-xs text-black/65 dark:text-white/65 py-2.5 px-3.5 rounded-xl bg-black/3 dark:bg-white/3 border border-black/5 dark:border-white/5">
-          <div class="flex items-center gap-3 flex-wrap">
-            {course.data.credits && (
-              <div class="flex items-center gap-1">
-                <span class="text-black/40 dark:text-white/40">学分:</span>
-                <span class="font-semibold text-black/85 dark:text-white/85">{course.data.credits} 学分</span>
-              </div>
-            )}
-            {course.data.hours && (
-              <div class="flex items-center gap-1">
-                <span class="text-black/40 dark:text-white/40">学时:</span>
-                <span class="font-semibold text-black/85 dark:text-white/85">{course.data.hours} 课时</span>
-              </div>
-            )}
-          </div>
-          {course.data.prerequisites?.length > 0 && (
-            <div class="flex items-center gap-1.5 flex-wrap">
-              <span class="px-1.5 py-0.5 rounded font-medium bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30 text-[11px]">
-                推荐先修
-              </span>
-              <div class="flex items-center gap-1 flex-wrap font-medium">
-                {course.data.prerequisites.map((p: string, idx: number) => (
-                  <>
-                    <a
-                      href={url(`/courses/?q=${encodeURIComponent(p)}`)}
-                      class="text-(--primary) hover:underline"
-                      title={`在课程大纲中检索先修课: ${p}`}
-                    >
-                      {p}
-                    </a>
-                    {idx < course.data.prerequisites.length - 1 && <span class="text-black/30 dark:text-white/30">、</span>}
-                  </>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      <!-- 课程标签与 GitHub 仓库操作条 -->
-      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-3 border-t border-black/5 dark:border-white/5">
-        <!-- 标签 -->
-        {course.data.tags.length > 0 && (
-          <div class="flex items-center gap-1.5 flex-wrap">
-            {course.data.tags.map((tag) => (
-              <a
-                href={url(`/courses/?q=${encodeURIComponent(tag)}`)}
-                class="text-xs px-2.5 py-1 rounded-lg bg-black/5 dark:bg-white/5 text-black/65 dark:text-white/65 hover:text-(--primary) hover:bg-(--primary)/10 transition-colors"
-              >
-                #{tag}
-              </a>
-            ))}
-          </div>
-        )}
-
-        <!-- 仅保留 GitHub 仓库链接 -->
-        {course.data.repoUrl && (
-          <div class="shrink-0 self-start sm:self-center">
-            <a
-              href={course.data.repoUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              class="text-xs font-semibold px-4 py-2 rounded-xl bg-black text-white dark:bg-white dark:text-black hover:opacity-90 transition-opacity flex items-center gap-2 shadow-sm"
-            >
-              <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24">
-                <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
-              </svg>
-              <span>课程资料仓库</span>
-            </a>
-          </div>
-        )}
-      </div>
     </div>
 
-    <!-- 课程正文 Markdown 渲染容器 (带 Pagefind 索引属性) -->
-    <div class="card-base p-6 md:p-9 rounded-2xl relative w-full border border-black/5 dark:border-white/5">
-      <div data-pagefind-body>
-        <Markdown class="mb-6 markdown-content onload-animation">
-          <Content />
-        </Markdown>
+    <!-- 主文章卡片 -->
+    <div class="card-base z-10 px-6 md:px-9 pt-6 pb-6 relative w-full rounded-2xl border border-black/5 dark:border-white/5">
+      <!-- 统计指标：字数与阅读时长 -->
+      <div class="flex flex-row items-center text-xs text-black/40 dark:text-white/40 gap-4 mb-3 transition">
+        <div class="flex items-center gap-1.5">
+          <svg class="w-3.5 h-3.5 text-(--primary)" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>
+          <span>{wordCount} 字</span>
+        </div>
+        <div class="flex items-center gap-1.5">
+          <svg class="w-3.5 h-3.5 text-(--primary)" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <span>约 {readMinutes} 分钟</span>
+        </div>
+        {meta.semester && (
+          <div class="hidden sm:flex items-center gap-1.5">
+            <span class="px-2 py-0.5 rounded-md bg-(--primary)/10 text-(--primary) font-semibold text-[11px] border border-(--primary)/20">
+              {meta.semester}
+            </span>
+          </div>
+        )}
       </div>
 
-      <!-- 课程贡献引导横幅 -->
-      <div class="mt-8 p-5 rounded-xl bg-black/3 dark:bg-white/4 border border-black/5 dark:border-white/5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div class="flex items-center gap-3">
-          <div class="w-10 h-10 rounded-lg bg-(--primary)/15 text-(--primary) flex items-center justify-center shrink-0">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-            </svg>
-          </div>
-          <div>
-            <div class="text-sm font-bold text-black/90 dark:text-white/90">有更优质的试卷、笔记或实验攻略？</div>
-            <div class="text-xs text-black/50 dark:text-white/50">欢迎向本开源项目提交 Pull Request 或 Issue，与学弟学妹们薪火相传！</div>
-          </div>
-        </div>
-        <a
-          href={url("/about/#贡献指南")}
-          class="text-xs px-4 py-2 rounded-xl bg-(--primary) text-white font-medium hover:opacity-90 transition-opacity shrink-0 shadow-sm"
+      <!-- 文章主标题（Firefly 原生主标题修饰：左侧垂直主色块） -->
+      <div class="relative onload-animation">
+        <h1
+          class="transition w-full block font-bold mb-3
+                 text-2xl md:text-3xl text-90
+                 md:before:w-1 before:h-6 before:rounded-md before:bg-(--primary)
+                 before:absolute before:top-2 before:-left-5"
         >
-          查看贡献指南
+          {docTitle}
+        </h1>
+      </div>
+
+      <!-- 元数据胶囊栏 -->
+      <div class="flex items-center gap-2 flex-wrap text-xs text-50 mb-4 onload-animation">
+        <!-- 学科标签 -->
+        <span class="px-2 py-0.5 rounded-md bg-[oklch(0.95_0.025_var(--hue))] dark:bg-[oklch(0.25_0.025_var(--hue))] text-(--primary) font-medium">
+          {subjectName}
+        </span>
+        {subDir && (
+          <span class="px-2 py-0.5 rounded-md bg-black/5 dark:bg-white/5 text-60 font-medium">
+            {subDir}
+          </span>
+        )}
+        <span class="text-30">·</span>
+        <span class="text-black/45 dark:text-white/45">更新于 {formattedDate}</span>
+      </div>
+
+      <!-- 分割虚线 -->
+      <div class="border-(--line-divider) border-dashed border-b mt-2 mb-6"></div>
+
+      <!-- Markdown 正文渲染区 (完全继承 Firefly markdown.css 与 custom-md 排版规范) -->
+      <Markdown class="mb-6 markdown-content onload-animation">
+        <Fragment set:html={renderedHtml} />
+      </Markdown>
+
+      <!-- 底部操作导航区 -->
+      <div class="border-t border-black/5 dark:border-white/5 pt-5 mt-8 flex items-center justify-between flex-wrap gap-3">
+        <a
+          href={url(`/courses/?subject=${encodeURIComponent(subjectId)}`)}
+          class="px-4 py-2 rounded-xl bg-(--primary) text-white hover:opacity-90 transition-opacity text-xs font-semibold inline-flex items-center gap-2 no-underline shadow-xs"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+          </svg>
+          <span>返回 {subjectName} 学科归档</span>
+        </a>
+
+        <a
+          href={url("/courses/")}
+          class="px-3.5 py-2 rounded-xl bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 text-black/70 dark:text-white/70 text-xs font-medium transition-colors no-underline"
+        >
+          返回主页
         </a>
       </div>
     </div>
-
-    <!-- 同方向 / 关联课程推荐（暂时隐藏） -->
-    {false && relatedCourses.length > 0 && (
-      <div class="card-base p-6 rounded-2xl flex flex-col gap-4 border border-black/5 dark:border-white/5">
-        <div class="flex items-center justify-between">
-          <h2 class="text-base font-bold text-black/90 dark:text-white/90 flex items-center gap-2">
-            <svg class="w-4 h-4 text-(--primary)" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-            </svg>
-            <span>同方向 / 关联课程推荐</span>
-          </h2>
-          <a href={url("/courses/")} class="text-xs text-(--primary) hover:underline">
-            查看全部课程大纲 &rarr;
-          </a>
-        </div>
-
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          {relatedCourses.map((rel) => {
-            const relSlug = removeFileExtension(rel.id);
-            return (
-              <a
-                href={url(`/courses/${relSlug}/`)}
-                class="p-3.5 rounded-xl bg-black/2 dark:bg-white/3 hover:bg-(--primary)/8 transition-all border border-black/4 dark:border-white/5 flex flex-col gap-1.5 group"
-              >
-                <div class="flex items-center justify-between gap-2 text-xs">
-                  <span class="font-semibold text-black/90 dark:text-white/90 group-hover:text-(--primary) transition-colors truncate">
-                    {rel.data.title}
-                  </span>
-                  <span class="text-[11px] px-1.5 py-0.2 rounded bg-black/5 dark:bg-white/10 text-black/60 dark:text-white/60 shrink-0">
-                    {rel.data.semester}
-                  </span>
-                </div>
-                {rel.data.description && (
-                  <div class="text-xs text-black/50 dark:text-white/50 line-clamp-1">
-                    {rel.data.description}
-                  </div>
-                )}
-              </a>
-            );
-          })}
-        </div>
-      </div>
-    )}
   </div>
 </MainGridLayout>

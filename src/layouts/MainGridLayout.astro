@@ -81,7 +81,7 @@ const shouldRenderCategoryBar = !!siteConfig.categoryBar;
 const navbarWidthFull = siteConfig.navbar.widthFull ?? false;
 
 const banner = getBannerVisibilityState({
-	isHomePage: isHomePageCheck,
+	isHomePage: isHomePageCheck && !isCourseView,
 	isPostPage,
 	title,
 	bannerPostMeta,
@@ -103,7 +103,20 @@ const {
 } = sidebar;
 ---
 
-<Layout title={title} description={description} lang={lang} setOGTypeArticle={setOGTypeArticle} postSlug={postSlug} postCoverImage={postCoverImage} ogImageWidth={ogImageWidth} ogImageHeight={ogImageHeight} ogImageAlt={ogImageAlt} hasWallpaper={hasWallpaper}>
+<Layout
+	title={title}
+	description={description}
+	lang={lang}
+	setOGTypeArticle={setOGTypeArticle}
+	postSlug={postSlug}
+	postCoverImage={postCoverImage}
+	ogImageWidth={ogImageWidth}
+	ogImageHeight={ogImageHeight}
+	ogImageAlt={ogImageAlt}
+	hasWallpaper={hasWallpaper}
+	isCoursePage={isCourseView}
+	isHomePage={isHomePageCheck && !isCourseView}
+>
 
 <slot slot="head" name="head" />
 <HeaderTopRow navbarMode={navbarMode} navbarWidthFull={navbarWidthFull} />

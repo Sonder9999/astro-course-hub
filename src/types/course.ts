@@ -48,3 +48,50 @@ export type CourseMajorConfig = {
 	badgeColor?: string;
 	description?: string;
 };
+
+/**
+ * 递归目录树节点数据结构
+ */
+export interface TreeNode {
+	name: string;
+	path: string;
+	isDirectory: boolean;
+	size?: number;
+	ext?: string;
+	mtime?: string;
+	children?: TreeNode[];
+}
+
+/**
+ * 学科元数据定义（用于 3D 轮盘卡片及归档头信息）
+ */
+export interface SubjectMeta {
+	id: string; // 文件夹名/学科ID
+	name: string; // 中文显示名
+	category: string; // 分类标签
+	icon?: string; // 徽标或图标标识 (可选)
+	gradient: string; // 渐变背景兜底
+	image: string; // 视觉卡片配图
+	description: string; // 课程简介
+	semester?: string; // 对应开课学期
+}
+
+/**
+ * 学期轮盘大组定义
+ */
+export interface SemesterGroup {
+	id: string;
+	name: string;
+	enName: string;
+	subTitle: string;
+	themeColor: string;
+	subjectIds: string[];
+}
+
+/**
+ * 学科体系总配置
+ */
+export interface SubjectConfig {
+	semesters: SemesterGroup[];
+	subjects: Record<string, SubjectMeta>;
+}

@@ -58,6 +58,16 @@ export type {
 } from "../types/fontConfig"; // 字体类型定义
 export { analyticsConfig } from "./analyticsConfig"; // 统计分析配置
 export { announcementConfig } from "./announcementConfig"; // 公告配置
+export type {
+	ArchiveDisplayConfig,
+	CourseArchiveConfig,
+	FileTypeFilterItem,
+} from "./archiveConfig";
+export {
+	archiveDisplayConfig,
+	archiveFileTypeConfig,
+	courseArchiveConfig,
+} from "./archiveConfig";
 // 样式配置
 export { backgroundWallpaper } from "./backgroundWallpaper"; // 背景壁纸配置
 export { booknavConfig, booknavPageConfig } from "./booknavConfig"; // 书签导航配置
@@ -86,3 +96,12 @@ export { sidebarLayoutConfig } from "./sidebarConfig"; // 侧边栏布局配置
 // 核心配置
 export { siteConfig } from "./siteConfig"; // 站点基础配置
 export { sponsorConfig } from "./sponsorConfig"; // 打赏配置
+// 课程与学科知识体系配置
+export {
+	getSubjectMeta,
+	SEMESTER_GROUPS,
+	SUBJECT_METAS,
+	semesterGroups,
+	subjectConfig,
+	subjectMetas,
+} from "./subjectConfig";
