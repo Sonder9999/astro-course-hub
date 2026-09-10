@@ -1,7 +1,21 @@
 <script lang="ts">
 import { onDestroy, onMount } from "svelte";
-import { getSubjectMeta, semesterGroups } from "@/config/subjectConfig";
+import {
+	courseCoverConfig,
+	getCourseCover,
+	getSubjectMeta,
+	semesterGroups,
+} from "@/config/subjectConfig";
 import type { SemesterGroup, TreeNode } from "@/types/course";
+
+const refreshSeed = typeof window !== "undefined" ? Date.now() : "";
+
+function resolveSubjectCover(subId: string, defaultImage: string): string {
+	if (defaultImage && !defaultImage.includes("t.alcy.cc")) {
+		return defaultImage;
+	}
+	return getCourseCover(subId, refreshSeed);
+}
 
 let {
 	tree = [],
@@ -313,7 +327,7 @@ onDestroy(() => {
                 >
                   <div class="independent-img-box" style="background: {meta.gradient};">
                     <img
-                      src={meta.image}
+                      src={resolveSubjectCover(subId, meta.image)}
                       alt={meta.name}
                       loading="lazy"
                       onerror={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
@@ -351,7 +365,7 @@ onDestroy(() => {
                 >
                   <div class="continuous-bg" style="background: {meta.gradient};">
                     <img
-                      src={meta.image}
+                      src={resolveSubjectCover(subId, meta.image)}
                       alt={meta.name}
                       loading="lazy"
                       onerror={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}

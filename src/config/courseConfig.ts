@@ -1,8 +1,10 @@
 import type {
 	CourseCategoryConfig,
+	CourseCoverConfig,
 	CourseMajorConfig,
 	CourseSemesterConfig,
 } from "@/types/course";
+import { courseCoverConfig } from "./subjectConfig";
 
 export interface CourseSiteConfig {
 	// 学期选项列表（用于首页筛选和归档分类）
@@ -19,6 +21,8 @@ export interface CourseSiteConfig {
 	showDifficulty: boolean;
 	// 是否在卡片上显示外部资源快速链接
 	showQuickLinks: boolean;
+	// 课程卡片二次元封面壁纸配置（每次刷新随机 vs 缓存固定）
+	cover: CourseCoverConfig;
 	// 资源仓库与贡献配置（通用指引）
 	repository: {
 		defaultRepoUrl: string; // 默认课程资料总仓库
@@ -126,6 +130,7 @@ export const courseConfig: CourseSiteConfig = {
 	defaultSort: "semester",
 	showDifficulty: true,
 	showQuickLinks: true,
+	cover: courseCoverConfig,
 	repository: {
 		defaultRepoUrl: "https://github.com/example-univ/course-resources",
 		contributionUrl: "/about/",

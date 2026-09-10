@@ -3,7 +3,11 @@ import { onMount } from "svelte";
 import Carousel3D from "@/components/Carousel3D.svelte";
 import TreeNodeComponent from "@/components/TreeNode.svelte";
 import { courseArchiveConfig } from "@/config/archiveConfig";
-import { getSubjectMeta } from "@/config/subjectConfig";
+import {
+	courseCoverConfig,
+	getCourseCover,
+	getSubjectMeta,
+} from "@/config/subjectConfig";
 import type {
 	CourseCategoryConfig,
 	CourseMajorConfig,
@@ -12,6 +16,16 @@ import type {
 } from "@/types/course";
 import type { CourseListItem } from "@/utils/course-utils";
 import SubjectArchivePanel from "./SubjectArchivePanel.svelte";
+
+// 页面刷新种子：在客户端加载时生成独立时间戳，若开启 randomOnRefresh 则保证每次刷新图片各异
+const refreshSeed = typeof window !== "undefined" ? Date.now() : "";
+
+function resolveCourseCover(course: CourseListItem): string {
+	if (course.image && !course.image.includes("t.alcy.cc")) {
+		return course.image;
+	}
+	return getCourseCover(course.id, refreshSeed);
+}
 
 interface Diagnostics {
 	totalFormulas: number;
@@ -662,7 +676,21 @@ onMount(() => {
 				>
 					<div class="absolute -right-6 -bottom-6 w-24 h-24 rounded-full bg-(--primary)/5 pointer-events-none transition-all group-hover:scale-150"></div>
 
-					<div class="flex flex-col gap-2.5">
+					{#if resolveCourseCover(course)}
+						<div class="absolute right-0 top-0 bottom-0 w-36 pointer-events-none overflow-hidden opacity-15 dark:opacity-25 transition-opacity group-hover:opacity-30">
+							<img
+								src={resolveCourseCover(course)}
+								alt={course.title}
+								class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+								loading="lazy"
+								onerror={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+							/>
+							<!-- 线性渐变遮罩：让图片左侧与卡片底色自然淡化融合 -->
+							<div class="absolute inset-0 bg-gradient-to-r from-[var(--card-bg,#fff)] dark:from-[var(--card-bg,#1a1b26)] via-transparent to-transparent"></div>
+						</div>
+					{/if}
+
+					<div class="flex flex-col gap-2.5 relative z-10">
 						<!-- 顶部微标行 -->
 						<div class="flex items-center gap-1.5 flex-wrap text-xs">
 							<span class="px-2 py-0.5 rounded-md font-medium border {getSemesterColor(course.semester)} shrink-0">
@@ -715,7 +743,7 @@ onMount(() => {
 					</div>
 
 					<!-- 卡片底部动作条 -->
-					<div class="mt-4 pt-3 border-t border-black/5 dark:border-white/5 flex items-center justify-between gap-2 min-h-[34px]">
+					<div class="mt-4 pt-3 border-t border-black/5 dark:border-white/5 flex items-center justify-between gap-2 min-h-[34px] relative z-10">
 						{#if course.tags.length > 0}
 							<div class="flex items-center gap-1.5 flex-nowrap overflow-hidden min-w-0 mr-auto">
 								{#each course.tags.slice(0, 2) as tag}

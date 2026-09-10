@@ -1,5 +1,6 @@
 import { type CollectionEntry, getCollection } from "astro:content";
 import { courseConfig } from "@/config/courseConfig";
+import { getSubjectMeta } from "@/config/subjectConfig";
 import { url } from "@/utils/url-utils";
 
 export type CourseEntry = CollectionEntry<"courses">;
@@ -95,7 +96,7 @@ export async function getCourseListData(): Promise<CourseListItem[]> {
 			repoUrl: c.data.repoUrl || "",
 			externalLinks: c.data.externalLinks || [],
 			icon: c.data.icon || "material-symbols:book-2-outline",
-			image: c.data.image || "",
+			image: c.data.image || getSubjectMeta(slug).image,
 			order: c.data.order ?? 100,
 			updated: c.data.updated
 				? c.data.updated.toISOString().split("T")[0]

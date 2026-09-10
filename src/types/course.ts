@@ -50,6 +50,14 @@ export type CourseMajorConfig = {
 };
 
 /**
+ * 课程封面壁纸配置定义
+ */
+export interface CourseCoverConfig {
+	api: string;
+	randomOnRefresh: boolean;
+}
+
+/**
  * 递归目录树节点数据结构
  */
 export interface TreeNode {

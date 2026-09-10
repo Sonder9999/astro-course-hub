@@ -98,6 +98,8 @@ export { siteConfig } from "./siteConfig"; // 站点基础配置
 export { sponsorConfig } from "./sponsorConfig"; // 打赏配置
 // 课程与学科知识体系配置
 export {
+	courseCoverConfig,
+	getCourseCover,
 	getSubjectMeta,
 	SEMESTER_GROUPS,
 	SUBJECT_METAS,
