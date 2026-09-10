@@ -39,6 +39,12 @@ export const courseConfig: CourseSiteConfig = {
 				"bg-neutral-500/10 text-neutral-700 dark:text-neutral-300 border-neutral-500/20",
 		},
 		{
+			id: "overview",
+			name: "专业总览",
+			color:
+				"bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border-indigo-500/30",
+		},
+		{
 			id: "y1s1",
 			name: "大一上",
 			color:
@@ -113,6 +119,7 @@ export const courseConfig: CourseSiteConfig = {
 	],
 	categories: [
 		{ name: "全部方向" },
+		{ name: "专业总览", description: "培养方案、路线图与学习指南" },
 		{ name: "学科基础课", description: "数学、物理与跨专业大类基础" },
 		{ name: "专业核心课", description: "本专业骨干必修主干课程" },
 		{ name: "专业选修课", description: "细分领域进阶选修方向" },
@@ -132,7 +139,7 @@ export const courseConfig: CourseSiteConfig = {
 	showQuickLinks: true,
 	cover: courseCoverConfig,
 	repository: {
-		defaultRepoUrl: "https://github.com/example-univ/course-resources",
+		defaultRepoUrl: "https://github.com/Henu-Kaguya/Henu-Kaguya",
 		contributionUrl: "/about/",
 	},
 };
