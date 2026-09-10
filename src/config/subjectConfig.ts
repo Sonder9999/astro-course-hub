@@ -36,7 +36,7 @@ export const courseCoverConfig: CourseCoverConfig = {
 	// 刷新模式开关：
 	// true (默认): 每次刷新都不一样（每次进入/刷新页面时获取动态随机壁纸）
 	// false: 读取缓存固定照片（利用 ?id=${courseId} 种子参数锁定单门课程固定壁纸，防止每次刷新闪烁变幻）
-	randomOnRefresh: true,
+	randomOnRefresh: false,
 };
 
 /**

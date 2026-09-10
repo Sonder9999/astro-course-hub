@@ -6,6 +6,7 @@ import MainGridLayout from "@/layouts/MainGridLayout.astro";
 import { scanMergedDirectory } from "@/plugins/vite-plugin-course-archive";
 import { getCourseArchiveListData } from "@/utils/course-archive";
 import "katex/dist/katex.min.css";
+import "@/styles/carousel3d.css";
 
 const courses = getCourseArchiveListData();
 const initialTree = scanMergedDirectory(
