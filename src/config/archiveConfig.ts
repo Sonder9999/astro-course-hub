@@ -98,6 +98,11 @@ export interface CourseArchiveConfig {
 	 */
 	contentDir: string;
 	/**
+	 * 远程课程缓存目录
+	 * 默认 ".cache/remote-courses"
+	 */
+	remoteCacheDir: string;
+	/**
 	 * 静态媒体与附件资源的前端请求路径前缀
 	 * 默认 "/course-assets"
 	 */
@@ -127,6 +132,7 @@ export const courseArchiveConfig: CourseArchiveConfig = {
 			(import.meta as unknown as { env?: Record<string, string> }).env
 				?.COURSE_ARCHIVE_DIR) ||
 		"./src/content/courses",
+	remoteCacheDir: ".cache/remote-courses",
 	assetsPrefix: "/course-assets",
 	apiPrefix: "/api/course",
 	display: archiveDisplayConfig,

@@ -1,13 +1,17 @@
 ---
+import path from "node:path";
 import CourseDashboard from "@/components/course/CourseDashboard.svelte";
 import { courseArchiveConfig, courseConfig } from "@/config";
 import MainGridLayout from "@/layouts/MainGridLayout.astro";
-import { scanDirectory } from "@/plugins/vite-plugin-course-archive";
+import { scanMergedDirectory } from "@/plugins/vite-plugin-course-archive";
 import { getCourseArchiveListData } from "@/utils/course-archive";
 import "katex/dist/katex.min.css";
 
 const courses = getCourseArchiveListData();
-const initialTree = scanDirectory(courseArchiveConfig.contentDir);
+const initialTree = scanMergedDirectory(
+	courseArchiveConfig.contentDir,
+	path.resolve(courseArchiveConfig.remoteCacheDir),
+);
 const heading = "课程";
 ---
 

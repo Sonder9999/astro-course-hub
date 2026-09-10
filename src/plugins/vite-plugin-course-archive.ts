@@ -22,6 +22,7 @@ export interface CourseArchiveVitePlugin {
 
 export interface CourseArchivePluginOptions {
 	targetDir?: string;
+	remoteCacheDir?: string;
 	assetsPrefix?: string;
 	apiPrefix?: string;
 }
@@ -107,6 +108,56 @@ export function scanDirectory(
 	return result;
 }
 
+/**
+ * 合并两个 TreeNode 数组, 本地优先:
+ * - 同名文件: 保留本地版本
+ * - 同名目录: 递归合并子节点
+ * - 仅远程存在: 直接添加
+ */
+function mergeTreeNodes(local: TreeNode[], remote: TreeNode[]): TreeNode[] {
+	const localMap = new Map(local.map((n) => [n.name, n]));
+	const merged = [...local];
+
+	for (const remoteNode of remote) {
+		const localNode = localMap.get(remoteNode.name);
+		if (!localNode) {
+			// 本地不存在, 直接添加远程节点
+			merged.push(remoteNode);
+		} else if (localNode.isDirectory && remoteNode.isDirectory) {
+			// 同名目录: 递归合并子节点
+			localNode.children = mergeTreeNodes(
+				localNode.children || [],
+				remoteNode.children || [],
+			);
+		}
+		// 同名文件: 本地优先, 跳过远程
+	}
+
+	// 排序: 目录在前, 同类按中文排序
+	merged.sort((a, b) => {
+		if (a.isDirectory === b.isDirectory) {
+			return a.name.localeCompare(b.name, "zh-CN");
+		}
+		return a.isDirectory ? -1 : 1;
+	});
+
+	return merged;
+}
+
+/**
+ * 合并扫描本地目录和远程缓存目录
+ * 本地优先: 同路径文件本地存在则跳过远程
+ */
+export function scanMergedDirectory(
+	localDir: string,
+	remoteDir: string,
+): TreeNode[] {
+	const localTree = scanDirectory(localDir);
+	const remoteTree = scanDirectory(remoteDir);
+
+	return mergeTreeNodes(localTree, remoteTree);
+}
+
 function isSafePath(baseDir: string, targetPath: string): boolean {
 	const resolvedBase = path.resolve(baseDir);
 	const resolvedTarget = path.resolve(targetPath);
@@ -189,6 +240,9 @@ export function courseArchivePlugin(
 	const targetDir = path.resolve(
 		options.targetDir || courseArchiveConfig.contentDir,
 	);
+	const remoteCacheDir = path.resolve(
+		options.remoteCacheDir || courseArchiveConfig.remoteCacheDir,
+	);
 	const assetsPrefix = options.assetsPrefix || courseArchiveConfig.assetsPrefix;
 	const apiPrefix = options.apiPrefix || courseArchiveConfig.apiPrefix;
 
@@ -211,7 +265,7 @@ export function courseArchivePlugin(
 
 					if (isTreeEndpoint && req.method === "GET") {
 						try {
-							const tree = scanDirectory(targetDir);
+							const tree = scanMergedDirectory(targetDir, remoteCacheDir);
 							res.setHeader("Content-Type", "application/json; charset=utf-8");
 							res.end(JSON.stringify({ success: true, targetDir, data: tree }));
 						} catch (err: unknown) {
@@ -246,11 +300,29 @@ export function courseArchivePlugin(
 							return;
 						}
 
-						const absolutePath = path.isAbsolute(reqPath)
+						// 解析文件路径: 本地优先, 回退到远程缓存
+						let absolutePath = path.isAbsolute(reqPath)
 							? reqPath
 							: path.join(targetDir, reqPath);
+						let resolvedBaseDir = targetDir;
 
-						if (!isSafePath(targetDir, absolutePath)) {
+						// 如果本地目录找不到, 尝试远程缓存目录
+						if (
+							!path.isAbsolute(reqPath) &&
+							(!fs.existsSync(absolutePath) ||
+								!fs.statSync(absolutePath).isFile())
+						) {
+							const remotePath = path.join(remoteCacheDir, reqPath);
+							if (
+								fs.existsSync(remotePath) &&
+								fs.statSync(remotePath).isFile()
+							) {
+								absolutePath = remotePath;
+								resolvedBaseDir = remoteCacheDir;
+							}
+						}
+
+						if (!isSafePath(resolvedBaseDir, absolutePath)) {
 							res.statusCode = 403;
 							res.setHeader("Content-Type", "application/json; charset=utf-8");
 							res.end(
@@ -356,15 +428,27 @@ export function courseArchivePlugin(
 								.replace(/^\/+/, ""),
 						);
 
-						const absoluteAssetPath = path.join(targetDir, relativeAssetPath);
+						// 本地优先, 回退到远程缓存
+						let absoluteAssetPath = path.join(targetDir, relativeAssetPath);
 
 						if (
 							!isSafePath(targetDir, absoluteAssetPath) ||
 							!fs.existsSync(absoluteAssetPath)
 						) {
-							res.statusCode = 404;
-							res.end("Asset Not Found");
-							return;
+							const remoteAssetPath = path.join(
+								remoteCacheDir,
+								relativeAssetPath,
+							);
+							if (
+								isSafePath(remoteCacheDir, remoteAssetPath) &&
+								fs.existsSync(remoteAssetPath)
+							) {
+								absoluteAssetPath = remoteAssetPath;
+							} else {
+								res.statusCode = 404;
+								res.end("Asset Not Found");
+								return;
+							}
 						}
 
 						const ext = path.extname(absoluteAssetPath).toLowerCase();

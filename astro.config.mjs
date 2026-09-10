@@ -350,6 +350,7 @@ export default defineConfig({
 			tailwindcss(),
 			courseArchivePlugin({
 				targetDir: courseArchiveConfig.contentDir,
+				remoteCacheDir: courseArchiveConfig.remoteCacheDir,
 				assetsPrefix: courseArchiveConfig.assetsPrefix,
 				apiPrefix: courseArchiveConfig.apiPrefix,
 			}),

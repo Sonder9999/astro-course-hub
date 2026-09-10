@@ -29,7 +29,7 @@ export const semesterGroups: SemesterGroup[] = [
 		enName: "Year 2 Fall",
 		subTitle: "专业主干与核心理论",
 		themeColor: "#f59e0b",
-		subjectIds: [],
+		subjectIds: ["Computer-Ethics", "Discrete-Mathematics"],
 	},
 	{
 		id: "y2s2",
@@ -91,6 +91,30 @@ export const subjectMetas: Record<string, SubjectMeta> = {
 		image:
 			"https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=800&q=80",
 		description: "这是示例课程三的描述，可在该配置文件中自由添加新课程。",
+	},
+	"Computer-Ethics": {
+		id: "Computer-Ethics",
+		name: "计算机伦理学",
+		category: "通识教育课",
+		gradient: "linear-gradient(135deg, #7c3aed, #a78bfa, #6d28d9)",
+		image:
+			"https://images.unsplash.com/photo-1620712943543-bcc4688e7485?auto=format&fit=crop&w=800&q=80",
+		description: "计算机伦理学课程讨论、课件与论文资料",
+		remoteRepo: "https://github.com/Henu-Kaguya/Computer-Ethics.git",
+		remoteBranch: "main",
+		remoteExclude: ["LICENSE"],
+	},
+	"Discrete-Mathematics": {
+		id: "Discrete-Mathematics",
+		name: "离散数学",
+		category: "学科基础课",
+		gradient: "linear-gradient(135deg, #0369a1, #38bdf8, #0284c7)",
+		image:
+			"https://images.unsplash.com/photo-1509228468518-180dd4864904?auto=format&fit=crop&w=800&q=80",
+		description: "离散数学课程笔记、历年考卷与练习",
+		remoteRepo: "https://github.com/Henu-Kaguya/Discrete-Mathematics.git",
+		remoteBranch: "main",
+		remoteExclude: ["LICENSE"],
 	},
 };
 

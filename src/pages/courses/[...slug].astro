@@ -51,10 +51,21 @@ export async function getStaticPaths() {
 		return result;
 	}
 
-	const targetDir = courseArchiveConfig.contentDir;
-	const files = scan(targetDir);
+	const localDir = courseArchiveConfig.contentDir;
+	const remoteDir = path.resolve(courseArchiveConfig.remoteCacheDir);
 
-	return files.map((file) => {
+	// 扫描本地和远程缓存文件
+	const localFiles = scan(localDir);
+	const remoteFiles = scan(remoteDir);
+
+	// 合并: 本地优先, 同 relPath 文件取本地版本
+	const localSlugs = new Set(localFiles.map((f) => f.relPath));
+	const mergedFiles = [
+		...localFiles,
+		...remoteFiles.filter((f) => !localSlugs.has(f.relPath)),
+	];
+
+	return mergedFiles.map((file) => {
 		const slug = file.relPath.replace(/\.(md|markdown)$/i, "");
 		return {
 			params: { slug },

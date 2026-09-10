@@ -78,11 +78,11 @@ type ContentCollection<T> = CollectionConfig<
 const coursesCollection: ContentCollection<CourseData> = defineCollection({
 	loader: glob({ pattern: "**/*.{md,mdx}", base: "./src/content/courses" }),
 	schema: z.object({
-		title: z.string(),
+		title: z.string().optional().default(""),
 		titleEn: z.string().optional().default(""),
 		code: z.string().optional().default(""),
-		semester: z.string(),
-		category: z.string(),
+		semester: z.string().optional().default(""),
+		category: z.string().optional().default(""),
 		major: z
 			.union([z.string(), z.array(z.string())])
 			.optional()

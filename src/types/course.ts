@@ -74,6 +74,16 @@ export interface SubjectMeta {
 	image: string; // 视觉卡片配图
 	description: string; // 课程简介
 	semester?: string; // 对应开课学期
+
+	// 远程仓库配置 (可选, 留空则视为纯本地学科)
+	/** 远程 Git 仓库 URL (HTTPS), 留空则视为纯本地学科 */
+	remoteRepo?: string;
+	/** 远程仓库中的内容根目录, 默认 "/" 表示仓库根目录 */
+	remoteRootDir?: string;
+	/** 远程仓库的分支名, 默认 "main" */
+	remoteBranch?: string;
+	/** 拉取时排除的文件/目录名列表 */
+	remoteExclude?: string[];
 }
 
 /**
