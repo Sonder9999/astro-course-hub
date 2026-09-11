@@ -1,266 +1,264 @@
 <script lang="ts">
-	import type { Spot, SpotIndustry } from "@/types/spot";
-	import type { CategoryMeta, MapClusterConfig } from "@/config/mapConfig";
-	import {
-		createMarkerElement,
-		createClusterMarkerElement,
-		buildInfoWindowHtml,
-	} from "@/utils/map-marker-utils";
+import type { CategoryMeta, MapClusterConfig } from "@/config/mapConfig";
+import type { Spot, SpotIndustry } from "@/types/spot";
+import {
+	buildInfoWindowHtml,
+	createClusterMarkerElement,
+	createMarkerElement,
+} from "@/utils/map-marker-utils";
 
-	interface Props {
-		spots: Spot[];
-		amapKey: string;
-		amapSecurityKey: string;
-		center: [number, number];
-		zoom: number;
-		iconScale?: string | number;
-		cluster?: MapClusterConfig;
-		categories: Record<SpotIndustry, CategoryMeta>;
-	}
+interface Props {
+	spots: Spot[];
+	amapKey: string;
+	amapSecurityKey: string;
+	center: [number, number];
+	zoom: number;
+	iconScale?: string | number;
+	cluster?: MapClusterConfig;
+	categories: Record<SpotIndustry, CategoryMeta>;
+}
 
-	const {
-		spots,
-		amapKey,
-		amapSecurityKey,
-		center,
-		zoom,
-		iconScale = "90%",
-		cluster = { enable: true, gridSize: 60, maxZoom: 16 },
-		categories,
-	}: Props = $props();
+const {
+	spots,
+	amapKey,
+	amapSecurityKey,
+	center,
+	zoom,
+	iconScale = "90%",
+	cluster = { enable: true, gridSize: 60, maxZoom: 16 },
+	categories,
+}: Props = $props();
 
-	// 分类筛选列表
-	const allIndustries: SpotIndustry[] = [
-		"campus",
-		"dining",
-		"scenic",
-		"shopping",
-		"enjoy",
-		"residential",
-		"other",
-	];
+// 分类筛选列表
+const allIndustries: SpotIndustry[] = [
+	"campus",
+	"dining",
+	"scenic",
+	"shopping",
+	"enjoy",
+	"residential",
+	"other",
+];
 
-	let activeFilters: Set<SpotIndustry> = $state(new Set(allIndustries));
+let activeFilters: Set<SpotIndustry> = $state(new Set(allIndustries));
 
-	function toggleFilter(industry: SpotIndustry): void {
-		const next = new Set(activeFilters);
-		if (next.has(industry)) {
-			if (next.size > 1) {
-				next.delete(industry);
-			}
-		} else {
-			next.add(industry);
+function toggleFilter(industry: SpotIndustry): void {
+	const next = new Set(activeFilters);
+	if (next.has(industry)) {
+		if (next.size > 1) {
+			next.delete(industry);
 		}
-		activeFilters = next;
+	} else {
+		next.add(industry);
 	}
+	activeFilters = next;
+}
 
-	function selectAll(): void {
-		activeFilters = new Set(allIndustries);
-	}
+function selectAll(): void {
+	activeFilters = new Set(allIndustries);
+}
 
-	const isAllSelected: boolean = $derived(
-		activeFilters.size === allIndustries.length,
-	);
+const isAllSelected: boolean = $derived(
+	activeFilters.size === allIndustries.length,
+);
 
-	// 统计各分类点位数量
-	const categoryCounts: Record<SpotIndustry, number> = $derived(
-		allIndustries.reduce(
-			(acc, ind) => {
-				acc[ind] = spots.filter((s) => s.industry === ind).length;
-				return acc;
-			},
-			{} as Record<SpotIndustry, number>,
-		),
-	);
+// 统计各分类点位数量
+const categoryCounts: Record<SpotIndustry, number> = $derived(
+	allIndustries.reduce(
+		(acc, ind) => {
+			acc[ind] = spots.filter((s) => s.industry === ind).length;
+			return acc;
+		},
+		{} as Record<SpotIndustry, number>,
+	),
+);
 
-	// 地图实例与聚合对象状态
-	let mapContainer: HTMLDivElement | undefined = $state(undefined);
-	let mapInstance: any = $state(null);
-	let clusterInstance: any = $state(null);
-	let rawMarkers: any[] = $state([]);
-	let infoWindow: any = $state(null);
-	let mapLoaded: boolean = $state(false);
-	let loadError: string = $state("");
+// 地图实例与聚合对象状态
+let mapContainer: HTMLDivElement | undefined = $state(undefined);
+let mapInstance: any = $state(null);
+let clusterInstance: any = $state(null);
+let rawMarkers: any[] = $state([]);
+let infoWindow: any = $state(null);
+let mapLoaded: boolean = $state(false);
+let loadError: string = $state("");
 
-	// 打开信息弹窗
-	function openSpotInfoWindow(spot: Spot, position: any): void {
-		const cat = categories[spot.industry];
-		const contentHtml = buildInfoWindowHtml(spot, cat);
-		const container = document.createElement("div");
-		container.className = "spot-info-container";
-		container.innerHTML = `
+// 打开信息弹窗
+function openSpotInfoWindow(spot: Spot, position: any): void {
+	const cat = categories[spot.industry];
+	const contentHtml = buildInfoWindowHtml(spot, cat);
+	const container = document.createElement("div");
+	container.className = "spot-info-container";
+	container.innerHTML = `
 			<div class="spot-info-bubble">
 				${contentHtml}
 				<button class="spot-info-close" aria-label="关闭">&times;</button>
 			</div>
 			<div class="spot-info-arrow"></div>
 		`;
-		container
-			.querySelector(".spot-info-close")
-			?.addEventListener("click", () => {
-				infoWindow.close();
-			});
+	container.querySelector(".spot-info-close")?.addEventListener("click", () => {
+		infoWindow.close();
+	});
 
-		infoWindow.setContent(container);
-		infoWindow.open(mapInstance, position);
+	infoWindow.setContent(container);
+	infoWindow.open(mapInstance, position);
+}
+
+// 初始化高德地图与点位聚合
+async function loadMap(): Promise<void> {
+	if (!mapContainer || !amapKey) return;
+
+	try {
+		(window as any)._AMapSecurityConfig = {
+			securityJsCode: amapSecurityKey,
+		};
+
+		const AMapLoader = (await import("@amap/amap-jsapi-loader")).default;
+		const AMap = await AMapLoader.load({
+			key: amapKey,
+			version: "2.0",
+			plugins: ["AMap.Scale", "AMap.ToolBar", "AMap.MarkerCluster"],
+		});
+
+		mapInstance = new AMap.Map(mapContainer, {
+			zoom: zoom,
+			center: center,
+			viewMode: "2D",
+			resizeEnable: true,
+		});
+
+		infoWindow = new AMap.InfoWindow({
+			isCustom: true,
+			offset: new AMap.Pixel(0, -36),
+			autoMove: true,
+		});
+
+		mapInstance.addControl(new AMap.Scale());
+		mapInstance.addControl(
+			new AMap.ToolBar({
+				position: { top: "10px", right: "10px" },
+			}),
+		);
+
+		if (cluster.enable && AMap.MarkerCluster) {
+			initCluster(AMap);
+		} else {
+			initRawMarkers(AMap);
+		}
+
+		mapLoaded = true;
+	} catch (err: any) {
+		loadError = err?.message || "地图加载失败";
 	}
+}
 
-	// 初始化高德地图与点位聚合
-	async function loadMap(): Promise<void> {
-		if (!mapContainer || !amapKey) return;
+// 聚合模式初始化
+function initCluster(AMap: any): void {
+	const points = spots.map((s) => ({
+		lnglat: [s.lon, s.lat],
+		data: s,
+	}));
 
-		try {
-			(window as any)._AMapSecurityConfig = {
-				securityJsCode: amapSecurityKey,
-			};
-
-			const AMapLoader = (await import("@amap/amap-jsapi-loader")).default;
-			const AMap = await AMapLoader.load({
-				key: amapKey,
-				version: "2.0",
-				plugins: ["AMap.Scale", "AMap.ToolBar", "AMap.MarkerCluster"],
-			});
-
-			mapInstance = new AMap.Map(mapContainer, {
-				zoom: zoom,
-				center: center,
-				viewMode: "2D",
-				resizeEnable: true,
-			});
-
-			infoWindow = new AMap.InfoWindow({
-				isCustom: true,
-				offset: new AMap.Pixel(0, -36),
-				autoMove: true,
-			});
-
-			mapInstance.addControl(new AMap.Scale());
-			mapInstance.addControl(
-				new AMap.ToolBar({
-					position: { top: "10px", right: "10px" },
-				}),
+	clusterInstance = new AMap.MarkerCluster(mapInstance, points, {
+		gridSize: cluster.gridSize,
+		maxZoom: cluster.maxZoom,
+		renderClusterMarker: (context: any) => {
+			const { dom, offset } = createClusterMarkerElement(
+				context.count,
+				cluster.icon,
+				cluster.scale ?? "125%",
+				iconScale,
 			);
-
-			if (cluster.enable && AMap.MarkerCluster) {
-				initCluster(AMap);
-			} else {
-				initRawMarkers(AMap);
-			}
-
-			mapLoaded = true;
-		} catch (err: any) {
-			loadError = err?.message || "地图加载失败";
-		}
-	}
-
-	// 聚合模式初始化
-	function initCluster(AMap: any): void {
-		const points = spots.map((s) => ({
-			lnglat: [s.lon, s.lat],
-			data: s,
-		}));
-
-		clusterInstance = new AMap.MarkerCluster(mapInstance, points, {
-			gridSize: cluster.gridSize,
-			maxZoom: cluster.maxZoom,
-			renderClusterMarker: (context: any) => {
-				const { dom, offset } = createClusterMarkerElement(
-					context.count,
-					cluster.icon,
-					cluster.scale ?? "125%",
-					iconScale,
-				);
-				context.marker.setContent(dom);
-				context.marker.setOffset(new AMap.Pixel(offset[0], offset[1]));
-			},
-			renderMarker: (context: any) => {
-				const spot: Spot = context.data[0].data;
-				const cat = categories[spot.industry];
-				const { dom, offset } = createMarkerElement(spot, cat, iconScale);
-				context.marker.setContent(dom);
-				context.marker.setOffset(new AMap.Pixel(offset[0], offset[1]));
-
-				// 为单个点位 DOM 绑定点击事件，确保 100% 触发弹窗
-				dom.onclick = (e: MouseEvent) => {
-					e.stopPropagation();
-					openSpotInfoWindow(spot, context.marker.getPosition());
-				};
-
-				// 为单个 AMap.Marker 对象绑定点击监听
-				context.marker.setExtData(spot);
-				context.marker.off("click");
-				context.marker.on("click", () => {
-					openSpotInfoWindow(spot, context.marker.getPosition());
-				});
-			},
-		});
-
-		clusterInstance.on("click", (e: any) => {
-			if (e.clusterData && e.clusterData.length > 1) {
-				mapInstance.setZoomAndCenter(mapInstance.getZoom() + 2, e.lnglat);
-			} else if (e.clusterData && e.clusterData.length === 1) {
-				const spot: Spot = e.clusterData[0].data;
-				openSpotInfoWindow(spot, e.lnglat);
-			}
-		});
-	}
-
-	// 普通标记模式（聚合关闭时的回退）
-	function initRawMarkers(AMap: any): void {
-		for (const m of rawMarkers) {
-			mapInstance.remove(m);
-		}
-		rawMarkers = [];
-
-		for (const spot of spots) {
+			context.marker.setContent(dom);
+			context.marker.setOffset(new AMap.Pixel(offset[0], offset[1]));
+		},
+		renderMarker: (context: any) => {
+			const spot: Spot = context.data[0].data;
 			const cat = categories[spot.industry];
 			const { dom, offset } = createMarkerElement(spot, cat, iconScale);
+			context.marker.setContent(dom);
+			context.marker.setOffset(new AMap.Pixel(offset[0], offset[1]));
 
-			const marker = new AMap.Marker({
-				position: new AMap.LngLat(spot.lon, spot.lat),
-				content: dom,
-				offset: new AMap.Pixel(offset[0], offset[1]),
-				extData: spot,
+			// 为单个点位 DOM 绑定点击事件，确保 100% 触发弹窗
+			dom.onclick = (e: MouseEvent) => {
+				e.stopPropagation();
+				openSpotInfoWindow(spot, context.marker.getPosition());
+			};
+
+			// 为单个 AMap.Marker 对象绑定点击监听
+			context.marker.setExtData(spot);
+			context.marker.off("click");
+			context.marker.on("click", () => {
+				openSpotInfoWindow(spot, context.marker.getPosition());
 			});
+		},
+	});
 
-			marker.on("click", () => {
-				openSpotInfoWindow(spot, marker.getPosition());
-			});
-
-			rawMarkers.push(marker);
+	clusterInstance.on("click", (e: any) => {
+		if (e.clusterData && e.clusterData.length > 1) {
+			mapInstance.setZoomAndCenter(mapInstance.getZoom() + 2, e.lnglat);
+		} else if (e.clusterData && e.clusterData.length === 1) {
+			const spot: Spot = e.clusterData[0].data;
+			openSpotInfoWindow(spot, e.lnglat);
 		}
+	});
+}
 
-		mapInstance.add(rawMarkers);
+// 普通标记模式（聚合关闭时的回退）
+function initRawMarkers(AMap: any): void {
+	for (const m of rawMarkers) {
+		mapInstance.remove(m);
+	}
+	rawMarkers = [];
+
+	for (const spot of spots) {
+		const cat = categories[spot.industry];
+		const { dom, offset } = createMarkerElement(spot, cat, iconScale);
+
+		const marker = new AMap.Marker({
+			position: new AMap.LngLat(spot.lon, spot.lat),
+			content: dom,
+			offset: new AMap.Pixel(offset[0], offset[1]),
+			extData: spot,
+		});
+
+		marker.on("click", () => {
+			openSpotInfoWindow(spot, marker.getPosition());
+		});
+
+		rawMarkers.push(marker);
 	}
 
-	// 响应分类筛选状态变化
-	$effect(() => {
-		if (clusterInstance) {
-			const filteredPoints = spots
-				.filter((s) => activeFilters.has(s.industry))
-				.map((s) => ({
-					lnglat: [s.lon, s.lat],
-					data: s,
-				}));
-			clusterInstance.setData(filteredPoints);
-		} else if (rawMarkers.length > 0) {
-			for (const marker of rawMarkers) {
-				const spot: Spot = marker.getExtData();
-				if (activeFilters.has(spot.industry)) {
-					marker.show();
-				} else {
-					marker.hide();
-				}
+	mapInstance.add(rawMarkers);
+}
+
+// 响应分类筛选状态变化
+$effect(() => {
+	if (clusterInstance) {
+		const filteredPoints = spots
+			.filter((s) => activeFilters.has(s.industry))
+			.map((s) => ({
+				lnglat: [s.lon, s.lat],
+				data: s,
+			}));
+		clusterInstance.setData(filteredPoints);
+	} else if (rawMarkers.length > 0) {
+		for (const marker of rawMarkers) {
+			const spot: Spot = marker.getExtData();
+			if (activeFilters.has(spot.industry)) {
+				marker.show();
+			} else {
+				marker.hide();
 			}
 		}
-	});
+	}
+});
 
-	// 生命周期：容器与 Key 准备就绪时挂载
-	$effect(() => {
-		if (mapContainer && amapKey) {
-			loadMap();
-		}
-	});
+// 生命周期：容器与 Key 准备就绪时挂载
+$effect(() => {
+	if (mapContainer && amapKey) {
+		loadMap();
+	}
+});
 </script>
 
 <!-- 分类筛选栏（自适应换行，确保移动端全部可见可点击） -->

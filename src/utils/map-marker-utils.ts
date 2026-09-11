@@ -23,17 +23,17 @@ export const BASE_MARKER_HEIGHT = 38;
  */
 export function parseScalePercent(
 	scale?: string | number,
-	fallback: number = 1.0,
+	fallback = 1.0,
 ): number {
 	if (scale === undefined || scale === null) return fallback;
 	if (typeof scale === "number") {
-		if (isNaN(scale) || scale <= 0) return fallback;
+		if (Number.isNaN(scale) || scale <= 0) return fallback;
 		return scale > 2.0 ? scale / 100 : scale;
 	}
 	const trimmed = String(scale).trim();
 	if (!trimmed) return fallback;
-	const num = parseFloat(trimmed);
-	if (isNaN(num) || num <= 0) return fallback;
+	const num = Number.parseFloat(trimmed);
+	if (Number.isNaN(num) || num <= 0) return fallback;
 	if (trimmed.endsWith("%") || num > 2.0) {
 		return num / 100;
 	}
@@ -56,7 +56,7 @@ export function resolveMarkerIcon(
 
 	const calculateDimensions = (
 		presetScale: string | number | undefined,
-		aspectRatio: number = 1.0,
+		aspectRatio = 1.0,
 		customW?: number,
 		customH?: number,
 		rawAnchor?: [number, number],
@@ -91,7 +91,9 @@ export function resolveMarkerIcon(
 	// 1. 匹配内置预设（按键名，如 "genshin_statue"）
 	if (trimmed in markerIconPresets) {
 		const preset: MarkerIconPreset = markerIconPresets[trimmed];
-		const iconUrl = preset.src.startsWith("http") ? preset.src : url(preset.src);
+		const iconUrl = preset.src.startsWith("http")
+			? preset.src
+			: url(preset.src);
 		const { width, height, anchor } = calculateDimensions(
 			preset.scale,
 			preset.aspectRatio ?? 1.0,
@@ -109,7 +111,9 @@ export function resolveMarkerIcon(
 			preset.src.endsWith(`/${trimmed}`) ||
 			trimmed.endsWith(preset.src)
 		) {
-			const iconUrl = preset.src.startsWith("http") ? preset.src : url(preset.src);
+			const iconUrl = preset.src.startsWith("http")
+				? preset.src
+				: url(preset.src);
 			const { width, height, anchor } = calculateDimensions(
 				preset.scale,
 				preset.aspectRatio ?? 1.0,
@@ -192,7 +196,7 @@ export function createMarkerElement(
  */
 export function createClusterMarkerElement(
 	count: number,
-	iconKeyOrPath: string = "/assets/images/map/firefly_elf.png",
+	iconKeyOrPath = "/assets/images/map/firefly_elf.png",
 	clusterScale: string | number = "125%",
 	globalScale: string | number = 1.0,
 ): { dom: HTMLElement; offset: [number, number] } {
@@ -203,8 +207,7 @@ export function createClusterMarkerElement(
 
 	const height = Math.max(20, Math.round(BASE_MARKER_HEIGHT * totalRatio));
 	const width = Math.max(18, Math.round(height * (560 / 679)));
-	const imgUrl =
-		resolvedIcon?.url || url("/assets/images/map/firefly_elf.png");
+	const imgUrl = resolvedIcon?.url || url("/assets/images/map/firefly_elf.png");
 
 	const container = document.createElement("div");
 	container.className = "spot-cluster-container";
