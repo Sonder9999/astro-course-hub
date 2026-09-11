@@ -1,8 +1,9 @@
 <script lang="ts">
 	import type { Spot, SpotIndustry } from "@/types/spot";
-	import type { CategoryMeta } from "@/config/mapConfig";
+	import type { CategoryMeta, MapClusterConfig } from "@/config/mapConfig";
 	import {
 		createMarkerElement,
+		createClusterMarkerElement,
 		buildInfoWindowHtml,
 	} from "@/utils/map-marker-utils";
 
@@ -12,6 +13,8 @@
 		amapSecurityKey: string;
 		center: [number, number];
 		zoom: number;
+		iconScale?: string | number;
+		cluster?: MapClusterConfig;
 		categories: Record<SpotIndustry, CategoryMeta>;
 	}
 
@@ -21,6 +24,8 @@
 		amapSecurityKey,
 		center,
 		zoom,
+		iconScale = "90%",
+		cluster = { enable: true, gridSize: 60, maxZoom: 16 },
 		categories,
 	}: Props = $props();
 
@@ -68,15 +73,39 @@
 		),
 	);
 
-	// 地图实例状态
+	// 地图实例与聚合对象状态
 	let mapContainer: HTMLDivElement | undefined = $state(undefined);
 	let mapInstance: any = $state(null);
-	let markers: any[] = $state([]);
+	let clusterInstance: any = $state(null);
+	let rawMarkers: any[] = $state([]);
 	let infoWindow: any = $state(null);
 	let mapLoaded: boolean = $state(false);
 	let loadError: string = $state("");
 
-	// 初始化高德地图
+	// 打开信息弹窗
+	function openSpotInfoWindow(spot: Spot, position: any): void {
+		const cat = categories[spot.industry];
+		const contentHtml = buildInfoWindowHtml(spot, cat);
+		const container = document.createElement("div");
+		container.className = "spot-info-container";
+		container.innerHTML = `
+			<div class="spot-info-bubble">
+				${contentHtml}
+				<button class="spot-info-close" aria-label="关闭">&times;</button>
+			</div>
+			<div class="spot-info-arrow"></div>
+		`;
+		container
+			.querySelector(".spot-info-close")
+			?.addEventListener("click", () => {
+				infoWindow.close();
+			});
+
+		infoWindow.setContent(container);
+		infoWindow.open(mapInstance, position);
+	}
+
+	// 初始化高德地图与点位聚合
 	async function loadMap(): Promise<void> {
 		if (!mapContainer || !amapKey) return;
 
@@ -89,6 +118,7 @@
 			const AMap = await AMapLoader.load({
 				key: amapKey,
 				version: "2.0",
+				plugins: ["AMap.Scale", "AMap.ToolBar", "AMap.MarkerCluster"],
 			});
 
 			mapInstance = new AMap.Map(mapContainer, {
@@ -104,32 +134,87 @@
 				autoMove: true,
 			});
 
-			AMap.plugin(["AMap.Scale", "AMap.ToolBar"], () => {
-				mapInstance.addControl(new AMap.Scale());
-				mapInstance.addControl(
-					new AMap.ToolBar({
-						position: { top: "10px", right: "10px" },
-					}),
-				);
-			});
+			mapInstance.addControl(new AMap.Scale());
+			mapInstance.addControl(
+				new AMap.ToolBar({
+					position: { top: "10px", right: "10px" },
+				}),
+			);
 
-			createMarkers(AMap);
+			if (cluster.enable && AMap.MarkerCluster) {
+				initCluster(AMap);
+			} else {
+				initRawMarkers(AMap);
+			}
+
 			mapLoaded = true;
 		} catch (err: any) {
 			loadError = err?.message || "地图加载失败";
 		}
 	}
 
-	// 创建地图标记点
-	function createMarkers(AMap: any): void {
-		for (const m of markers) {
+	// 聚合模式初始化
+	function initCluster(AMap: any): void {
+		const points = spots.map((s) => ({
+			lnglat: [s.lon, s.lat],
+			data: s,
+		}));
+
+		clusterInstance = new AMap.MarkerCluster(mapInstance, points, {
+			gridSize: cluster.gridSize,
+			maxZoom: cluster.maxZoom,
+			renderClusterMarker: (context: any) => {
+				const { dom, offset } = createClusterMarkerElement(
+					context.count,
+					cluster.icon,
+					cluster.scale ?? "125%",
+					iconScale,
+				);
+				context.marker.setContent(dom);
+				context.marker.setOffset(new AMap.Pixel(offset[0], offset[1]));
+			},
+			renderMarker: (context: any) => {
+				const spot: Spot = context.data[0].data;
+				const cat = categories[spot.industry];
+				const { dom, offset } = createMarkerElement(spot, cat, iconScale);
+				context.marker.setContent(dom);
+				context.marker.setOffset(new AMap.Pixel(offset[0], offset[1]));
+
+				// 为单个点位 DOM 绑定点击事件，确保 100% 触发弹窗
+				dom.onclick = (e: MouseEvent) => {
+					e.stopPropagation();
+					openSpotInfoWindow(spot, context.marker.getPosition());
+				};
+
+				// 为单个 AMap.Marker 对象绑定点击监听
+				context.marker.setExtData(spot);
+				context.marker.off("click");
+				context.marker.on("click", () => {
+					openSpotInfoWindow(spot, context.marker.getPosition());
+				});
+			},
+		});
+
+		clusterInstance.on("click", (e: any) => {
+			if (e.clusterData && e.clusterData.length > 1) {
+				mapInstance.setZoomAndCenter(mapInstance.getZoom() + 2, e.lnglat);
+			} else if (e.clusterData && e.clusterData.length === 1) {
+				const spot: Spot = e.clusterData[0].data;
+				openSpotInfoWindow(spot, e.lnglat);
+			}
+		});
+	}
+
+	// 普通标记模式（聚合关闭时的回退）
+	function initRawMarkers(AMap: any): void {
+		for (const m of rawMarkers) {
 			mapInstance.remove(m);
 		}
-		markers = [];
+		rawMarkers = [];
 
 		for (const spot of spots) {
 			const cat = categories[spot.industry];
-			const { dom, offset } = createMarkerElement(spot, cat);
+			const { dom, offset } = createMarkerElement(spot, cat, iconScale);
 
 			const marker = new AMap.Marker({
 				position: new AMap.LngLat(spot.lon, spot.lat),
@@ -139,46 +224,38 @@
 			});
 
 			marker.on("click", () => {
-				const contentHtml = buildInfoWindowHtml(spot, cat);
-				const container = document.createElement("div");
-				container.className = "spot-info-container";
-				container.innerHTML = `
-					<div class="spot-info-bubble">
-						${contentHtml}
-						<button class="spot-info-close" aria-label="关闭">&times;</button>
-					</div>
-					<div class="spot-info-arrow"></div>
-				`;
-				container
-					.querySelector(".spot-info-close")
-					?.addEventListener("click", () => {
-						infoWindow.close();
-					});
-
-				infoWindow.setContent(container);
-				infoWindow.open(mapInstance, marker.getPosition());
+				openSpotInfoWindow(spot, marker.getPosition());
 			});
 
-			markers.push(marker);
+			rawMarkers.push(marker);
 		}
 
-		mapInstance.add(markers);
+		mapInstance.add(rawMarkers);
 	}
 
-	// 响应筛选状态变化
+	// 响应分类筛选状态变化
 	$effect(() => {
-		if (!mapInstance || markers.length === 0) return;
-		for (const marker of markers) {
-			const spot: Spot = marker.getExtData();
-			if (activeFilters.has(spot.industry)) {
-				marker.show();
-			} else {
-				marker.hide();
+		if (clusterInstance) {
+			const filteredPoints = spots
+				.filter((s) => activeFilters.has(s.industry))
+				.map((s) => ({
+					lnglat: [s.lon, s.lat],
+					data: s,
+				}));
+			clusterInstance.setData(filteredPoints);
+		} else if (rawMarkers.length > 0) {
+			for (const marker of rawMarkers) {
+				const spot: Spot = marker.getExtData();
+				if (activeFilters.has(spot.industry)) {
+					marker.show();
+				} else {
+					marker.hide();
+				}
 			}
 		}
 	});
 
-	// 生命周期：容器与 Key 准备好时挂载
+	// 生命周期：容器与 Key 准备就绪时挂载
 	$effect(() => {
 		if (mapContainer && amapKey) {
 			loadMap();
@@ -186,7 +263,7 @@
 	});
 </script>
 
-<!-- 分类筛选栏 -->
+<!-- 分类筛选栏（自适应换行，确保移动端全部可见可点击） -->
 <div class="spot-filter-bar">
 	<button
 		class="spot-filter-btn"
@@ -235,23 +312,21 @@
 </div>
 
 <style>
-	/* ── 筛选栏 ────────────────────────────── */
+	/* ── 筛选栏（移动端友好换行排布） ────────── */
 	.spot-filter-bar {
 		display: flex;
+		flex-wrap: wrap;
 		gap: 8px;
-		padding: 12px 0;
-		overflow-x: auto;
-		scrollbar-width: none;
-		-webkit-overflow-scrolling: touch;
-	}
-	.spot-filter-bar::-webkit-scrollbar {
-		display: none;
+		padding: 10px 0;
+		width: 100%;
+		min-width: 0;
+		box-sizing: border-box;
 	}
 	.spot-filter-btn {
 		display: flex;
 		align-items: center;
 		gap: 6px;
-		padding: 6px 14px;
+		padding: 6px 13px;
 		border-radius: 20px;
 		border: 1.5px solid var(--btn-regular-bg, #e5e7eb);
 		background: transparent;
@@ -262,6 +337,9 @@
 		cursor: pointer;
 		transition: all 0.2s;
 		flex-shrink: 0;
+		user-select: none;
+		-webkit-tap-highlight-color: transparent;
+		touch-action: manipulation;
 	}
 	.spot-filter-btn:hover {
 		border-color: var(--cat-color, var(--primary, #3b82f6));
@@ -296,6 +374,8 @@
 		position: relative;
 		border-radius: var(--radius-large, 16px);
 		overflow: hidden;
+		width: 100%;
+		min-width: 0;
 	}
 	.spot-map-container {
 		width: 100%;
@@ -343,19 +423,68 @@
 		}
 	}
 
+	/* ── 聚合大图标与红圈数字角标 ──────────── */
+	:global(.spot-cluster-container) {
+		position: relative;
+		cursor: pointer;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.4));
+		transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+		user-select: none;
+		-webkit-tap-highlight-color: transparent;
+		touch-action: manipulation;
+	}
+	:global(.spot-cluster-container:hover) {
+		transform: scale(1.15);
+		filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.55));
+		z-index: 100;
+	}
+	:global(.spot-cluster-img) {
+		width: 100%;
+		height: 100%;
+		object-fit: contain;
+		display: block;
+		pointer-events: none;
+	}
+	:global(.spot-cluster-count-badge) {
+		position: absolute;
+		top: -4px;
+		right: -8px;
+		background: #ef4444;
+		color: white;
+		font-weight: 700;
+		font-size: 0.72rem;
+		min-width: 18px;
+		height: 18px;
+		line-height: 16px;
+		padding: 0 4px;
+		border-radius: 9999px;
+		border: 1.5px solid white;
+		box-shadow: 0 2px 5px rgba(239, 68, 68, 0.5);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		box-sizing: border-box;
+		pointer-events: none;
+	}
+
 	/* ── 标点与弹窗全局样式 ─────────────────── */
 	:global(.spot-marker-custom) {
 		cursor: pointer;
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.35));
+		filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.35));
 		transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
 		user-select: none;
+		-webkit-tap-highlight-color: transparent;
+		touch-action: manipulation;
 	}
 	:global(.spot-marker-custom:hover) {
 		transform: scale(1.18);
-		filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.45));
+		filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.45));
 		z-index: 99;
 	}
 	:global(.spot-marker-img) {
@@ -365,22 +494,21 @@
 		display: block;
 	}
 	:global(.spot-marker-pin) {
-		width: 28px;
-		height: 28px;
 		border-radius: 50% 50% 50% 0;
 		border: 2px solid white;
 		transform: rotate(-45deg);
-		box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+		box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
 		cursor: pointer;
 		position: relative;
 		transition: transform 0.2s;
+		-webkit-tap-highlight-color: transparent;
 	}
 	:global(.spot-marker-pin:hover) {
 		transform: rotate(-45deg) scale(1.15);
 	}
 	:global(.spot-marker-dot) {
-		width: 8px;
-		height: 8px;
+		width: 7px;
+		height: 7px;
 		border-radius: 50%;
 		background: white;
 		position: absolute;

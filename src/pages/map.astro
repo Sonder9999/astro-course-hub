@@ -30,9 +30,9 @@ const description = "河南大学周边餐饮、景点、购物等点位信息�
 
 <MainGridLayout title={title} description={description}>
   <div
-    class="flex w-full rounded-(--radius-large) overflow-hidden relative min-h-32"
+    class="flex w-full min-w-0 max-w-full rounded-(--radius-large) overflow-hidden relative min-h-32"
   >
-    <div class="card-base z-10 px-4 py-5 md:px-9 md:py-6 relative w-full">
+    <div class="card-base z-10 px-4 py-5 md:px-9 md:py-6 relative w-full min-w-0">
       <!-- 页面标题和描述 -->
       <div class="mb-4">
         <div class="flex items-center gap-3 mb-3">
@@ -58,6 +58,8 @@ const description = "河南大学周边餐饮、景点、购物等点位信息�
         amapSecurityKey={amapSecurityKey}
         center={mapConfig.center}
         zoom={mapConfig.zoom}
+        iconScale={mapConfig.iconScale}
+        cluster={mapConfig.cluster}
         categories={mapConfig.categories}
       />
     </div>
