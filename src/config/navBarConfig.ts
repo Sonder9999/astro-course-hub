@@ -29,6 +29,9 @@ const getDynamicNavBarConfig = (): NavBarConfig => {
 	// 书签与学习资源导航（如果开启）
 	links.push(LinkPresets.Booknav);
 
+	// 校园点位地图（如果开启）
+	links.push(LinkPresets.Map);
+
 	// 关于与贡献（下拉展开关于本站与 GitHub 仓库）
 	links.push({
 		name: "关于与贡献",
@@ -99,6 +102,12 @@ export const LinkPresets: Record<string, NavBarLink> = {
 		url: "/booknav/",
 		icon: "material-symbols:bookmarks-outline",
 		pageKey: "booknav",
+	},
+	Map: {
+		name: "校园地图",
+		url: "/map/",
+		icon: "material-symbols:map",
+		pageKey: "map",
 	},
 	About: {
 		name: "关于本站",

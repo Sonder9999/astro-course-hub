@@ -23,6 +23,8 @@ const pages = resolvePageToggles({
 	gallery: false,
 	// 资源导航 / 书签导航页面开关
 	booknav: true,
+	// 校园点位地图页面开关
+	map: true,
 
 	// ── 关于与贡献 (About) ──────────────────────────────────
 
