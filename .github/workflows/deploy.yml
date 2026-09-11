@@ -56,6 +56,8 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN || secrets.GITHUB_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PUBLIC_AMAP_KEY: ${{ secrets.PUBLIC_AMAP_KEY || vars.PUBLIC_AMAP_KEY }}
+          PUBLIC_AMAP_SECURITY_KEY: ${{ secrets.PUBLIC_AMAP_SECURITY_KEY || vars.PUBLIC_AMAP_SECURITY_KEY }}
 
       - name: Create .nojekyll file
         run: touch dist/.nojekyll
