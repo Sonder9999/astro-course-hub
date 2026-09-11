@@ -1,5 +1,9 @@
 <script lang="ts">
-import type { CategoryMeta, MapClusterConfig } from "@/config/mapConfig";
+import type {
+	CategoryMeta,
+	MapClusterConfig,
+	MapThemeStyles,
+} from "@/config/mapConfig";
 import type { Spot, SpotIndustry } from "@/types/spot";
 import {
 	buildInfoWindowHtml,
@@ -14,6 +18,7 @@ interface Props {
 	center: [number, number];
 	zoom: number;
 	iconScale?: string | number;
+	themeStyles?: MapThemeStyles;
 	cluster?: MapClusterConfig;
 	categories: Record<SpotIndustry, CategoryMeta>;
 }
@@ -25,6 +30,7 @@ const {
 	center,
 	zoom,
 	iconScale = "90%",
+	themeStyles = { light: "amap://styles/normal", dark: "amap://styles/dark" },
 	cluster = { enable: true, gridSize: 60, maxZoom: 16 },
 	categories,
 }: Props = $props();
@@ -83,6 +89,20 @@ let mapLoaded: boolean = $state(false);
 let isMapLoading = false;
 let loadError: string = $state("");
 
+let themeObserver: MutationObserver | null = null;
+
+// 根据当前页面深浅主题动态切换地图底图
+function updateMapTheme(): void {
+	if (!mapInstance) return;
+	const isDark =
+		typeof document !== "undefined" &&
+		document.documentElement.classList.contains("dark");
+	const targetStyle = isDark
+		? (themeStyles?.dark ?? "amap://styles/dark")
+		: (themeStyles?.light ?? "amap://styles/normal");
+	mapInstance.setMapStyle(targetStyle);
+}
+
 // 打开信息弹窗
 function openSpotInfoWindow(spot: Spot, position: any): void {
 	const cat = categories[spot.industry];
@@ -91,8 +111,13 @@ function openSpotInfoWindow(spot: Spot, position: any): void {
 	container.className = "spot-info-container";
 	container.innerHTML = `
 			<div class="spot-info-bubble">
+				<button class="spot-info-close" aria-label="关闭" title="关闭">
+					<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+						<line x1="18" y1="6" x2="6" y2="18"></line>
+						<line x1="6" y1="6" x2="18" y2="18"></line>
+					</svg>
+				</button>
 				${contentHtml}
-				<button class="spot-info-close" aria-label="关闭">&times;</button>
 			</div>
 			<div class="spot-info-arrow"></div>
 		`;
@@ -125,11 +150,19 @@ async function loadMap(): Promise<void> {
 			plugins: ["AMap.Scale", "AMap.ToolBar", "AMap.MarkerCluster"],
 		});
 
+		const isDark =
+			typeof document !== "undefined" &&
+			document.documentElement.classList.contains("dark");
+		const initialMapStyle = isDark
+			? (themeStyles?.dark ?? "amap://styles/dark")
+			: (themeStyles?.light ?? "amap://styles/normal");
+
 		mapInstance = new AMap.Map(mapContainer, {
 			zoom: zoom,
 			center: center,
 			viewMode: "2D",
 			resizeEnable: true,
+			mapStyle: initialMapStyle,
 		});
 
 		infoWindow = new AMap.InfoWindow({
@@ -261,12 +294,36 @@ $effect(() => {
 	}
 });
 
+// 联动全站昼夜主题切换
+$effect(() => {
+	if (mapLoaded && mapInstance && typeof MutationObserver !== "undefined") {
+		updateMapTheme();
+		themeObserver = new MutationObserver(() => {
+			updateMapTheme();
+		});
+		themeObserver.observe(document.documentElement, {
+			attributes: true,
+			attributeFilter: ["class"],
+		});
+	}
+	return () => {
+		if (themeObserver) {
+			themeObserver.disconnect();
+			themeObserver = null;
+		}
+	};
+});
+
 // 生命周期：容器与 Key 准备就绪时挂载与卸载清理
 $effect(() => {
 	if (mapContainer && amapKey && !mapLoaded && !isMapLoading) {
 		loadMap();
 	}
 	return () => {
+		if (themeObserver) {
+			themeObserver.disconnect();
+			themeObserver = null;
+		}
 		if (mapInstance) {
 			try {
 				mapInstance.destroy();
@@ -531,145 +588,340 @@ $effect(() => {
 		left: 50%;
 		transform: translate(-50%, -50%);
 	}
+	/* ── 现代高颜值毛玻璃信息弹窗（契合站点动态主题） ────────── */
 	:global(.spot-info-container) {
 		position: relative;
+		animation: spot-bubble-in 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+		user-select: none;
+		-webkit-tap-highlight-color: transparent;
 	}
+	@keyframes spot-bubble-in {
+		from {
+			opacity: 0;
+			transform: scale(0.92) translateY(6px);
+		}
+		to {
+			opacity: 1;
+			transform: scale(1) translateY(0);
+		}
+	}
+
 	:global(.spot-info-bubble) {
 		position: relative;
-		background: white;
-		border-radius: 12px;
-		box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-		padding: 16px;
-		min-width: 260px;
-		max-width: 320px;
+		min-width: 270px;
+		max-width: 330px;
+		padding: 15px 16px 13px;
+		border-radius: var(--radius-large, 16px);
+		box-sizing: border-box;
+
+		/* 亮色毛玻璃与主题融合微边框 */
+		background: color-mix(in srgb, var(--card-bg, #ffffff) 88%, transparent);
+		backdrop-filter: blur(16px);
+		-webkit-backdrop-filter: blur(16px);
+		border: 1px solid color-mix(in srgb, var(--primary, #3b82f6) 18%, rgba(0, 0, 0, 0.08));
+		box-shadow:
+			0 12px 30px -4px rgba(0, 0, 0, 0.12),
+			0 4px 12px -2px rgba(0, 0, 0, 0.06),
+			0 0 0 1px color-mix(in srgb, var(--primary, #3b82f6) 8%, transparent);
+		color: var(--deep-text, #1f2937);
+		transition: background-color 0.25s, border-color 0.25s, box-shadow 0.25s;
 	}
+
 	:global(.dark .spot-info-bubble) {
-		background: #1f2937;
-		color: #e5e7eb;
+		/* 暗色毛玻璃与主题融合微边框 */
+		background: color-mix(in srgb, var(--card-bg, #181a20) 84%, transparent);
+		border: 1px solid color-mix(in srgb, var(--primary, #3b82f6) 24%, rgba(255, 255, 255, 0.12));
+		box-shadow:
+			0 16px 36px -4px rgba(0, 0, 0, 0.55),
+			0 4px 14px -2px rgba(0, 0, 0, 0.35),
+			0 0 16px color-mix(in srgb, var(--primary, #3b82f6) 15%, transparent);
+		color: #f3f4f6;
 	}
+
+	/* 指向点位标记的下方小三角 */
 	:global(.spot-info-arrow) {
-		width: 0;
-		height: 0;
-		border-left: 8px solid transparent;
-		border-right: 8px solid transparent;
-		border-top: 8px solid white;
-		margin: 0 auto;
+		position: relative;
+		width: 12px;
+		height: 12px;
+		margin: -6px auto 0;
+		transform: rotate(45deg);
+		background: color-mix(in srgb, var(--card-bg, #ffffff) 92%, transparent);
+		backdrop-filter: blur(16px);
+		-webkit-backdrop-filter: blur(16px);
+		border-right: 1px solid color-mix(in srgb, var(--primary, #3b82f6) 18%, rgba(0, 0, 0, 0.08));
+		border-bottom: 1px solid color-mix(in srgb, var(--primary, #3b82f6) 18%, rgba(0, 0, 0, 0.08));
+		z-index: 1;
+		transition: background-color 0.25s, border-color 0.25s;
 	}
 	:global(.dark .spot-info-arrow) {
-		border-top-color: #1f2937;
+		background: color-mix(in srgb, var(--card-bg, #181a20) 88%, transparent);
+		border-right: 1px solid color-mix(in srgb, var(--primary, #3b82f6) 24%, rgba(255, 255, 255, 0.12));
+		border-bottom: 1px solid color-mix(in srgb, var(--primary, #3b82f6) 24%, rgba(255, 255, 255, 0.12));
 	}
+
+	/* 关闭按钮 */
 	:global(.spot-info-close) {
 		position: absolute;
-		top: 8px;
-		right: 8px;
-		width: 24px;
-		height: 24px;
-		border: none;
-		background: transparent;
-		font-size: 18px;
-		cursor: pointer;
-		color: #9ca3af;
+		top: 12px;
+		right: 12px;
+		width: 26px;
+		height: 26px;
+		border-radius: 50%;
+		border: 1px solid transparent;
+		background: color-mix(in srgb, var(--btn-regular-bg, #f3f4f6) 80%, transparent);
+		color: var(--content-meta, #6b7280);
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		border-radius: 50%;
-		transition: background 0.2s;
+		cursor: pointer;
+		transition: all 0.2s;
+		padding: 0;
+		z-index: 2;
 	}
 	:global(.spot-info-close:hover) {
-		background: rgba(0, 0, 0, 0.05);
+		background: color-mix(in srgb, var(--primary, #3b82f6) 15%, transparent);
+		color: var(--primary, #3b82f6);
+		border-color: color-mix(in srgb, var(--primary, #3b82f6) 30%, transparent);
+		transform: scale(1.08);
 	}
+	:global(.dark .spot-info-close) {
+		background: color-mix(in srgb, var(--btn-regular-bg, #2a2e39) 70%, transparent);
+		color: #9ca3af;
+	}
+	:global(.dark .spot-info-close:hover) {
+		background: color-mix(in srgb, var(--primary, #3b82f6) 25%, transparent);
+		color: var(--primary, #3b82f6);
+		border-color: color-mix(in srgb, var(--primary, #3b82f6) 40%, transparent);
+	}
+
+	/* 卡片头部与标签 */
 	:global(.spot-info-header) {
-		margin-bottom: 10px;
+		margin-bottom: 9px;
+		padding-right: 28px;
 	}
-	:global(.spot-category-badge) {
-		display: inline-block;
-		padding: 2px 10px;
-		border-radius: 12px;
-		color: white;
-		font-size: 0.7rem;
-		font-weight: 600;
-		margin-bottom: 6px;
-	}
-	:global(.spot-name) {
-		font-size: 1rem;
-		font-weight: 700;
-		margin: 0;
-		color: #111827;
-	}
-	:global(.dark .spot-name) {
-		color: #f3f4f6;
-	}
-	:global(.spot-address-link) {
+	:global(.spot-badges-row) {
 		display: flex;
 		align-items: center;
+		gap: 6px;
+		flex-wrap: wrap;
+		margin-bottom: 5px;
+	}
+	:global(.spot-category-pill) {
+		display: inline-flex;
+		align-items: center;
+		gap: 5px;
+		padding: 2px 9px;
+		border-radius: 9999px;
+		font-size: 0.72rem;
+		font-weight: 600;
+		background: color-mix(in srgb, var(--cat-color, #3b82f6) 12%, transparent);
+		color: var(--cat-color, #3b82f6);
+		border: 1px solid color-mix(in srgb, var(--cat-color, #3b82f6) 28%, transparent);
+		box-shadow: 0 1px 3px color-mix(in srgb, var(--cat-color, #3b82f6) 15%, transparent);
+	}
+	:global(.spot-category-dot) {
+		width: 5px;
+		height: 5px;
+		border-radius: 50%;
+		display: inline-block;
+	}
+	:global(.spot-floor-badge) {
+		font-size: 0.68rem;
+		font-weight: 600;
+		padding: 2px 7px;
+		border-radius: 6px;
+		background: color-mix(in srgb, var(--btn-regular-bg, #f3f4f6) 90%, transparent);
+		color: var(--content-meta, #6b7280);
+		border: 1px solid var(--line-divider, rgba(0, 0, 0, 0.06));
+	}
+	:global(.dark .spot-floor-badge) {
+		background: color-mix(in srgb, var(--btn-regular-bg, #2a2e39) 80%, transparent);
+		color: #9ca3af;
+		border-color: rgba(255, 255, 255, 0.08);
+	}
+	:global(.spot-title) {
+		font-size: 1.02rem;
+		font-weight: 700;
+		line-height: 1.35;
+		margin: 0;
+		color: var(--deep-text, #111827);
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+	:global(.dark .spot-title) {
+		color: #f9fafb;
+	}
+
+	/* 地址与导航操作行 */
+	:global(.spot-address-row) {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
 		gap: 8px;
-		padding: 10px 12px;
-		margin: 8px 0;
-		background: #f3f4f6;
+		padding: 7px 10px;
+		margin-bottom: 9px;
 		border-radius: 10px;
-		text-decoration: none;
-		color: #374151;
-		font-size: 0.85rem;
-		transition: background 0.2s;
-		cursor: pointer;
+		background: color-mix(in srgb, var(--btn-regular-bg, #f3f4f6) 65%, transparent);
+		border: 1px solid color-mix(in srgb, var(--line-divider, rgba(0,0,0,0.06)) 60%, transparent);
+		transition: background-color 0.2s, border-color 0.2s;
 	}
-	:global(.dark .spot-address-link) {
-		background: #374151;
-		color: #d1d5db;
+	:global(.dark .spot-address-row) {
+		background: color-mix(in srgb, var(--btn-regular-bg, #262933) 60%, transparent);
+		border-color: rgba(255, 255, 255, 0.06);
 	}
-	:global(.spot-address-link:hover) {
-		background: #e5e7eb;
+	:global(.spot-address-content) {
+		display: flex;
+		align-items: center;
+		gap: 6px;
+		min-width: 0;
+		flex: 1;
 	}
-	:global(.dark .spot-address-link:hover) {
-		background: #4b5563;
-	}
-	:global(.spot-nav-icon) {
-		width: 20px;
-		height: 20px;
-		flex-shrink: 0;
-		color: #3b82f6;
-	}
-	:global(.spot-nav-arrow) {
+	:global(.spot-pin-svg) {
 		width: 16px;
 		height: 16px;
 		flex-shrink: 0;
-		margin-left: auto;
-		color: #9ca3af;
+		color: var(--primary, #3b82f6);
+		filter: drop-shadow(0 1px 2px color-mix(in srgb, var(--primary, #3b82f6) 30%, transparent));
 	}
-	:global(.spot-meta-row) {
-		display: flex;
-		align-items: center;
-		gap: 8px;
+	:global(.spot-address-text) {
 		font-size: 0.8rem;
-		color: #6b7280;
+		line-height: 1.3;
+		color: var(--deep-text, #374151);
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
 	}
-	:global(.dark .spot-meta-row) {
-		color: #9ca3af;
-	}
-	:global(.spot-meta-divider) {
-		opacity: 0.3;
-	}
-	:global(.spot-rating-empty) {
-		color: #9ca3af;
-		font-size: 0.8rem;
-	}
-	:global(.spot-rating) {
-		display: inline-flex;
-		align-items: center;
-		gap: 2px;
-	}
-	:global(.star-full) {
-		color: #f59e0b;
-	}
-	:global(.star-half) {
-		color: #fbbf24;
-	}
-	:global(.star-empty) {
+	:global(.dark .spot-address-text) {
 		color: #d1d5db;
 	}
-	:global(.rating-num) {
-		margin-left: 4px;
+	:global(.spot-nav-btn) {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		gap: 4px;
+		padding: 5px 11px;
+		border-radius: 8px;
+		font-size: 0.74rem;
 		font-weight: 600;
+		line-height: 1;
+		white-space: nowrap;
+		text-decoration: none;
+		background: var(--primary, #3b82f6);
+		color: #ffffff !important;
+		flex-shrink: 0;
+		width: auto !important;
+		min-width: max-content !important;
+		height: auto !important;
+		box-sizing: border-box !important;
+		box-shadow: 0 2px 6px color-mix(in srgb, var(--primary, #3b82f6) 40%, transparent);
+		transition: all 0.2s;
+	}
+	:global(.spot-nav-btn span) {
+		display: inline-block;
+		white-space: nowrap;
+		line-height: 1;
+	}
+	:global(.spot-nav-btn:hover) {
+		filter: brightness(1.12);
+		transform: translateY(-1px);
+		box-shadow: 0 3px 10px color-mix(in srgb, var(--primary, #3b82f6) 55%, transparent);
+	}
+	:global(.spot-nav-arrow-svg) {
+		width: 13px !important;
+		height: 13px !important;
+		min-width: 13px !important;
+		min-height: 13px !important;
+		flex-shrink: 0;
+		transition: transform 0.2s;
+	}
+	:global(.spot-nav-btn:hover .spot-nav-arrow-svg) {
+		transform: translateX(1.5px) translateY(-1.5px);
+	}
+
+	/* 底部预留评分与评论栏 */
+	:global(.spot-meta-footer) {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 8px;
+		padding-top: 8px;
+		border-top: 1px solid color-mix(in srgb, var(--line-divider, rgba(0,0,0,0.08)) 80%, transparent);
+		font-size: 0.76rem;
+	}
+	:global(.dark .spot-meta-footer) {
+		border-top-color: rgba(255, 255, 255, 0.08);
+	}
+	:global(.spot-meta-sep) {
+		width: 1px;
+		height: 12px;
+		background: var(--line-divider, rgba(0,0,0,0.12));
+		opacity: 0.6;
+	}
+	:global(.dark .spot-meta-sep) {
+		background: rgba(255, 255, 255, 0.15);
+	}
+
+	/* 预留评分胶囊 */
+	:global(.spot-rating-pill) {
+		display: inline-flex;
+		align-items: center;
+		gap: 4px;
+	}
+	:global(.spot-stars-group) {
+		display: inline-flex;
+		align-items: center;
+		gap: 1px;
+		font-size: 0.82rem;
+		line-height: 1;
+	}
+	:global(.spot-star-icon.full) {
 		color: #f59e0b;
+	}
+	:global(.spot-star-icon.half) {
+		color: #fbbf24;
+	}
+	:global(.spot-star-icon.empty) {
+		color: #cbd5e1;
+	}
+	:global(.dark .spot-star-icon.empty) {
+		color: #4b5563;
+	}
+	:global(.spot-rating-score) {
+		font-weight: 700;
+		color: #f59e0b;
+		margin-left: 2px;
+	}
+	:global(.spot-rating-pill.is-empty) {
+		color: var(--content-meta, #9ca3af);
+		opacity: 0.75;
+	}
+	:global(.spot-rating-label) {
+		font-size: 0.74rem;
+	}
+
+	/* 预留独立评论徽章 */
+	:global(.spot-comment-pill) {
+		display: inline-flex;
+		align-items: center;
+		gap: 4px;
+		color: var(--content-meta, #6b7280);
+		transition: color 0.2s;
+	}
+	:global(.dark .spot-comment-pill) {
+		color: #9ca3af;
+	}
+	:global(.spot-comment-pill.has-comments) {
+		color: var(--primary, #3b82f6);
+		font-weight: 600;
+	}
+	:global(.spot-pill-icon) {
+		width: 13px;
+		height: 13px;
+		flex-shrink: 0;
+		opacity: 0.8;
+	}
+	:global(.spot-comment-pill.is-empty) {
+		opacity: 0.65;
 	}
 </style>

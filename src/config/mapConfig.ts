@@ -73,6 +73,14 @@ export interface MapClusterConfig {
 	height?: number;
 }
 
+/** 地图昼夜样式配置 */
+export interface MapThemeStyles {
+	/** 亮色模式底图样式（官方预设如 "amap://styles/normal"、"amap://styles/whitesmoke"） */
+	light: string;
+	/** 暗色模式底图样式（官方预设如 "amap://styles/dark"、"amap://styles/darkblue"） */
+	dark: string;
+}
+
 export interface MapConfig {
 	/** 地图默认中心点 [经度, 纬度] */
 	center: [number, number];
@@ -80,6 +88,8 @@ export interface MapConfig {
 	zoom: number;
 	/** 全局图标缩放百分比（如 "90%"、0.9），方便在此统一按比例放大/缩小所有图标 */
 	iconScale: string | number;
+	/** 昼夜地图样式配置，跟随站点深浅主题自动切换 */
+	themeStyles: MapThemeStyles;
 	/** 点位附近聚合配置 */
 	cluster: MapClusterConfig;
 	/** 分类配置：标签名称与标记颜色 */
@@ -92,6 +102,11 @@ export const mapConfig: MapConfig = {
 	zoom: 14,
 	// 全局图标缩放百分比，可在此统一按比例微调大小
 	iconScale: "90%",
+	// 昼夜地图底图主题
+	themeStyles: {
+		light: "amap://styles/normal",
+		dark: "amap://styles/dark",
+	},
 	// 点位聚合设置
 	cluster: {
 		enable: true,

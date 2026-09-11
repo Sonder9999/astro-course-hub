@@ -3,7 +3,7 @@ import {
 	type MarkerIconPreset,
 	markerIconPresets,
 } from "@/config/mapConfig";
-import type { Spot } from "@/types/spot";
+import type { Spot, SpotComment } from "@/types/spot";
 import { url } from "@/utils/url-utils";
 
 /** 解析后的标记图标属性 */
@@ -237,6 +237,19 @@ export function createClusterMarkerElement(
 /**
  * 生成高德地图 URI API 步行导航地址
  */
+function escapeHtml(str?: string): string {
+	if (!str) return "";
+	return str
+		.replace(/&/g, "&amp;")
+		.replace(/</g, "&lt;")
+		.replace(/>/g, "&gt;")
+		.replace(/"/g, "&quot;")
+		.replace(/'/g, "&#039;");
+}
+
+/**
+ * 生成高德地图 URI API 步行导航地址
+ */
 export function buildNavUrl(spot: Spot): string {
 	const name = encodeURIComponent(spot.name);
 	return `https://uri.amap.com/navigation?to=${spot.lon},${spot.lat},${name}&mode=walk&coordinate=gaode`;
@@ -247,23 +260,57 @@ export function buildNavUrl(spot: Spot): string {
  */
 export function renderRatingHtml(rating?: number): string {
 	if (rating === undefined || rating === null || rating <= 0) {
-		return '<span class="spot-rating-empty">暂无评分</span>';
+		return `
+			<div class="spot-rating-pill is-empty" title="该点位暂无评分（预留）">
+				<span class="spot-star-icon empty">&#9734;</span>
+				<span class="spot-rating-label">暂无评分</span>
+			</div>
+		`;
 	}
 	const full = Math.floor(rating);
 	const half = rating - full >= 0.5 ? 1 : 0;
 	const empty = Math.max(0, 5 - full - half);
-	let html = '<span class="spot-rating">';
+	let starsHtml = "";
 	for (let i = 0; i < full; i++) {
-		html += '<span class="star-full">&#9733;</span>';
+		starsHtml += '<span class="spot-star-icon full">&#9733;</span>';
 	}
 	if (half) {
-		html += '<span class="star-half">&#9733;</span>';
+		starsHtml += '<span class="spot-star-icon half">&#9733;</span>';
 	}
 	for (let i = 0; i < empty; i++) {
-		html += '<span class="star-empty">&#9734;</span>';
+		starsHtml += '<span class="spot-star-icon empty">&#9734;</span>';
 	}
-	html += ` <span class="rating-num">${rating.toFixed(1)}</span></span>`;
-	return html;
+	return `
+		<div class="spot-rating-pill has-rating">
+			<span class="spot-stars-group">${starsHtml}</span>
+			<span class="spot-rating-score">${rating.toFixed(1)}</span>
+		</div>
+	`;
+}
+
+/**
+ * 渲染单点评论徽章 HTML 结构（预留字段，各点位独立系统）
+ */
+export function renderCommentHtml(comments?: SpotComment[]): string {
+	const count = comments?.length ?? 0;
+	if (count > 0) {
+		return `
+			<div class="spot-comment-pill has-comments" title="已有 ${count} 条点位评价">
+				<svg class="spot-pill-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+					<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+				</svg>
+				<span>${count} 条评价</span>
+			</div>
+		`;
+	}
+	return `
+		<div class="spot-comment-pill is-empty" title="每个点位独立评价系统（预留）">
+			<svg class="spot-pill-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+				<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+			</svg>
+			<span>暂无评价</span>
+		</div>
+	`;
 }
 
 /**
@@ -274,31 +321,48 @@ export function buildInfoWindowHtml(
 	category: CategoryMeta,
 ): string {
 	const navUrl = buildNavUrl(spot);
-	const floorInfo = spot.floor ? ` / ${spot.floor}` : "";
-	const commentCount = spot.comments?.length ?? 0;
-	const commentText = commentCount > 0 ? `${commentCount} 条评论` : "暂无评论";
+	const floorBadge = spot.floor
+		? `<span class="spot-floor-badge">${escapeHtml(spot.floor)}</span>`
+		: "";
+	const safeName = escapeHtml(spot.name);
+	const safeAddress = escapeHtml(spot.address);
+	const ratingHtml = renderRatingHtml(spot.rating);
+	const commentHtml = renderCommentHtml(spot.comments);
 
 	return `
 		<div class="spot-info-window">
 			<div class="spot-info-header">
-				<span class="spot-category-badge" style="background:${category.color}">${category.label}</span>
-				<h3 class="spot-name">${spot.name}</h3>
+				<div class="spot-badges-row">
+					<span class="spot-category-pill" style="--cat-color: ${category.color}">
+						<span class="spot-category-dot" style="background: ${category.color}"></span>
+						${escapeHtml(category.label)}
+					</span>
+					${floorBadge}
+				</div>
+				<h3 class="spot-title" title="${safeName}">${safeName}</h3>
 			</div>
-			<div class="spot-info-body">
-				<a class="spot-address-link" href="${navUrl}" target="_blank" rel="noopener noreferrer">
-					<svg class="spot-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-						<path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+
+			<div class="spot-address-row">
+				<div class="spot-address-content">
+					<svg class="spot-pin-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+						<path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/>
+						<circle cx="12" cy="9" r="2.5"/>
 					</svg>
-					<span>${spot.address}${floorInfo}</span>
-					<svg class="spot-nav-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-						<path d="M9 18l6-6-6-6"/>
+					<span class="spot-address-text" title="${safeAddress}">${safeAddress}</span>
+				</div>
+				<a class="spot-nav-btn" href="${navUrl}" target="_blank" rel="noopener noreferrer" title="在高德地图中打开步行导航">
+					<span>导航</span>
+					<svg class="spot-nav-arrow-svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+						<line x1="7" y1="17" x2="17" y2="7"></line>
+						<polyline points="7 7 17 7 17 17"></polyline>
 					</svg>
 				</a>
-				<div class="spot-meta-row">
-					<span class="spot-meta-item">${renderRatingHtml(spot.rating)}</span>
-					<span class="spot-meta-divider">|</span>
-					<span class="spot-meta-item">${commentText}</span>
-				</div>
+			</div>
+
+			<div class="spot-meta-footer">
+				${ratingHtml}
+				<div class="spot-meta-sep"></div>
+				${commentHtml}
 			</div>
 		</div>
 	`;
