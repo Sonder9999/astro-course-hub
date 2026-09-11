@@ -91,6 +91,14 @@ let touchIsHorizontal: boolean | null = null;
 // 触屏端交互：记录当前展开的学科 ID（无 Hover 环境下的点发展开）
 let activeTouchSubject = $state<string | null>(null);
 
+let prevActiveIndex = 0;
+$effect(() => {
+	if (activeIndex !== prevActiveIndex) {
+		prevActiveIndex = activeIndex;
+		activeTouchSubject = null;
+	}
+});
+
 let ringEl: HTMLDivElement | null = null;
 let animFrameId: number | null = null;
 
@@ -100,7 +108,9 @@ export function rotateToSemester(idx: number) {
 	if (diff > 180) diff -= 360;
 	if (diff < -180) diff += 360;
 	targetRotY += diff;
-	activeTouchSubject = null;
+	if (idx !== activeIndex) {
+		activeTouchSubject = null;
+	}
 	updateActiveIndex();
 }
 
@@ -181,10 +191,12 @@ function onPointerUp() {
 	if (!isDragging) return;
 	isDragging = false;
 	touchIsHorizontal = null;
-	if (Math.abs(dragVelocityY) > 0.12) {
-		targetRotY += dragVelocityY * (isMobile ? 70 : 100);
+	if (hasDragged) {
+		if (Math.abs(dragVelocityY) > 0.12) {
+			targetRotY += dragVelocityY * (isMobile ? 70 : 100);
+		}
+		snapToNearest();
 	}
-	snapToNearest();
 	// 延迟重置 hasDragged，确保紧随其后的 click 事件能感知到拖拽状态并拦截误触
 	setTimeout(() => {
 		hasDragged = false;
@@ -265,6 +277,8 @@ onDestroy(() => {
     class="stage-container"
     bind:this={stageEl}
     style="--stage-height: {stageHeight}px; height: {stageHeight}px; min-height: {stageHeight}px; perspective: {perspectivePx}px;"
+    onmouseenter={() => { isHovered = true; }}
+    onmouseleave={() => { isHovered = false; }}
     onmousedown={onPointerDown}
     ontouchstart={onPointerDown}
     onwheel={onWheel}
@@ -296,7 +310,8 @@ onDestroy(() => {
             {#each sem.subjectIds as subId, subIdx}
               {@const subNode = getSubjectNode(subId)}
               {@const meta = getSubjectMeta(subId)}
-              {@const isTouchExpanded = isMobile && (activeTouchSubject === subId || (!activeTouchSubject && subIdx === 0))}
+              {@const hasMultipleSubjects = sem.subjectIds.length > 1}
+              {@const isTouchExpanded = isMobile && (!hasMultipleSubjects || (activeTouchSubject && sem.subjectIds.includes(activeTouchSubject) ? activeTouchSubject === subId : subIdx === 0))}
               {@const targetSubjectNode = subNode || {
                 name: subId,
                 path: subId,
@@ -313,7 +328,11 @@ onDestroy(() => {
                   onclick={(e) => {
                     e.stopPropagation();
                     if (hasDragged) return;
-                    if (isMobile) {
+                    if (!isActive) {
+                      rotateToSemester(semIdx);
+                      return;
+                    }
+                    if (isMobile && hasMultipleSubjects) {
                       if (!isTouchExpanded) {
                         activeTouchSubject = subId;
                         return;
@@ -322,7 +341,13 @@ onDestroy(() => {
                     onSelectSubject(targetSubjectNode);
                   }}
                   onkeydown={(e) => {
-                    if (e.key === 'Enter') onSelectSubject(targetSubjectNode);
+                    if (e.key === 'Enter') {
+                      if (!isActive) {
+                        rotateToSemester(semIdx);
+                        return;
+                      }
+                      onSelectSubject(targetSubjectNode);
+                    }
                   }}
                 >
                   <div class="independent-img-box" style="background: {meta.gradient};">
@@ -351,7 +376,11 @@ onDestroy(() => {
                   onclick={(e) => {
                     e.stopPropagation();
                     if (hasDragged) return;
-                    if (isMobile) {
+                    if (!isActive) {
+                      rotateToSemester(semIdx);
+                      return;
+                    }
+                    if (isMobile && hasMultipleSubjects) {
                       if (!isTouchExpanded) {
                         activeTouchSubject = subId;
                         return;
@@ -360,7 +389,13 @@ onDestroy(() => {
                     onSelectSubject(targetSubjectNode);
                   }}
                   onkeydown={(e) => {
-                    if (e.key === 'Enter') onSelectSubject(targetSubjectNode);
+                    if (e.key === 'Enter') {
+                      if (!isActive) {
+                        rotateToSemester(semIdx);
+                        return;
+                      }
+                      onSelectSubject(targetSubjectNode);
+                    }
                   }}
                 >
                   <div class="continuous-bg" style="background: {meta.gradient};">
@@ -379,7 +414,28 @@ onDestroy(() => {
                       {#if meta.description}
                         <p class="subject-desc">{meta.description}</p>
                       {/if}
-                      <div class="enter-btn">点击进入阅读 →</div>
+                      <div
+                        class="enter-btn"
+                        role="button"
+                        tabindex="0"
+                        onclick={(e) => {
+                          e.stopPropagation();
+                          if (hasDragged) return;
+                          if (!isActive) {
+                            rotateToSemester(semIdx);
+                            return;
+                          }
+                          onSelectSubject(targetSubjectNode);
+                        }}
+                        onkeydown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.stopPropagation();
+                            onSelectSubject(targetSubjectNode);
+                          }
+                        }}
+                      >
+                        点击进入阅读 →
+                      </div>
                     </div>
                   </div>
                 </div>

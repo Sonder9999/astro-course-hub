@@ -283,6 +283,7 @@
   transform: translateY(6px);
   transition: all 0.35s ease;
   white-space: nowrap;
+  cursor: pointer;
 }
 
 /* 连续版 Hover 核心展开：未悬停项挤压至 0.6，悬停项展开至 3.8 */
@@ -426,6 +427,9 @@
 .semester-card-item.active .accordion-body.continuous .continuous-item.touch-expanded {
   flex: 3.8;
 }
+.semester-card-item.active .accordion-body.continuous:has(.touch-expanded) .continuous-item:not(.touch-expanded) {
+  flex: 0.6;
+}
 .semester-card-item.active .accordion-body.continuous .continuous-item.touch-expanded img {
   transform: scale(1);
 }
@@ -446,6 +450,9 @@
   flex: 3.5;
   box-shadow: 0 16px 36px rgba(0, 0, 0, 0.55);
   border-color: var(--primary);
+}
+.semester-card-item.active .accordion-body.independent:has(.touch-expanded) .independent-box:not(.touch-expanded) {
+  flex: 0.7;
 }
 .semester-card-item.active .accordion-body.independent .independent-box.touch-expanded img {
   width: 100%;
