@@ -80,6 +80,7 @@ let clusterInstance: any = $state(null);
 let rawMarkers: any[] = $state([]);
 let infoWindow: any = $state(null);
 let mapLoaded: boolean = $state(false);
+let isMapLoading = false;
 let loadError: string = $state("");
 
 // 打开信息弹窗
@@ -105,9 +106,14 @@ function openSpotInfoWindow(spot: Spot, position: any): void {
 
 // 初始化高德地图与点位聚合
 async function loadMap(): Promise<void> {
-	if (!mapContainer || !amapKey) return;
+	if (!mapContainer || !amapKey || isMapLoading || mapLoaded) return;
+	isMapLoading = true;
 
 	try {
+		if (typeof window !== "undefined" && !(window as any).___onAPILoaded) {
+			(window as any).___onAPILoaded = () => {};
+		}
+
 		(window as any)._AMapSecurityConfig = {
 			securityJsCode: amapSecurityKey,
 		};
@@ -148,6 +154,8 @@ async function loadMap(): Promise<void> {
 		mapLoaded = true;
 	} catch (err: any) {
 		loadError = err?.message || "地图加载失败";
+	} finally {
+		isMapLoading = false;
 	}
 }
 
@@ -253,11 +261,20 @@ $effect(() => {
 	}
 });
 
-// 生命周期：容器与 Key 准备就绪时挂载
+// 生命周期：容器与 Key 准备就绪时挂载与卸载清理
 $effect(() => {
-	if (mapContainer && amapKey) {
+	if (mapContainer && amapKey && !mapLoaded && !isMapLoading) {
 		loadMap();
 	}
+	return () => {
+		if (mapInstance) {
+			try {
+				mapInstance.destroy();
+			} catch {}
+			mapInstance = null;
+			mapLoaded = false;
+		}
+	};
 });
 </script>
 

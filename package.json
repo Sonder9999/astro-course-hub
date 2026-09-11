@@ -8,10 +8,11 @@
   "packageManager": "pnpm@11.22.0",
   "scripts": {
     "sync-courses": "npx tsx scripts/sync-remote-courses.ts",
+    "copy-course-assets": "npx tsx scripts/copy-course-assets.ts",
     "dev": "npx tsx scripts/sync-remote-courses.ts && astro dev",
     "start": "npx tsx scripts/sync-remote-courses.ts && astro dev",
     "check": "astro check",
-    "build": "npx tsx scripts/sync-remote-courses.ts && npx tsx scripts/generate-github-card-data.ts && npx tsx scripts/generate-lqips.ts && astro build && npx tsx scripts/prune-pio-assets.ts && npx tsx scripts/subset-fonts.ts && npx tsx scripts/minify-inline-scripts.ts && npx tsx scripts/run-pagefind.ts",
+    "build": "npx tsx scripts/sync-remote-courses.ts && npx tsx scripts/generate-github-card-data.ts && npx tsx scripts/generate-lqips.ts && astro build && npx tsx scripts/copy-course-assets.ts && npx tsx scripts/prune-pio-assets.ts && npx tsx scripts/subset-fonts.ts && npx tsx scripts/minify-inline-scripts.ts && npx tsx scripts/run-pagefind.ts",
     "preview": "astro preview",
     "astro": "astro",
     "type-check": "tsc --noEmit --isolatedDeclarations",
