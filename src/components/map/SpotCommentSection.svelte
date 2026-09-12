@@ -3,7 +3,6 @@ import { onDestroy, onMount } from "svelte";
 import ReviewsMarquee from "@/components/common/ReviewsMarquee.svelte";
 import type { ReviewItem, SpotContactConfig } from "@/types/review";
 import type { Spot } from "@/types/spot";
-import SpotDynamicFeed from "./SpotDynamicFeed.svelte";
 
 interface Props {
 	/** 默认页面路径，例如 "/map/" */
@@ -49,13 +48,25 @@ let activeSpot: Spot | null = $state(null);
 let isContactModalOpen: boolean = $state(false);
 let copyMessage: string = $state("");
 let copyTimer: ReturnType<typeof setTimeout> | null = null;
-let viewMode: "dynamic" | "giscus" = $state("dynamic");
+let currentThemeUrl: string = $state("light");
 
 const currentTerm = $derived(
 	activeSpot ? `spot:${activeSpot.id}` : defaultPath,
 );
 
-// 动态向 Giscus 发送配置更新协议
+// 解析适配 Firefly 动态主题的 Giscus 主题方案
+function resolveGiscusTheme(): string {
+	if (typeof window === "undefined") return "preferred_color_scheme";
+	const isDark = document.documentElement.classList.contains("dark");
+	// 生产 HTTPS 环境下加载深度定制的动态风格样式表
+	if (window.location.protocol === "https:") {
+		return `${window.location.origin}/assets/css/giscus-dynamic-${isDark ? "dark" : "light"}.css`;
+	}
+	// 本地开发环境因浏览器 Mixed Content 策略限制，使用内置透明/明亮主题，卡片底色由外层 card-base 磨砂承载
+	return isDark ? "transparent_dark" : "light";
+}
+
+// 动态向 Giscus 发送配置更新指令
 function postGiscusConfig(config: Record<string, string | number | boolean>) {
 	const iframe = document.querySelector<HTMLIFrameElement>(
 		"iframe.giscus-frame",
@@ -78,7 +89,7 @@ function postGiscusConfig(config: Record<string, string | number | boolean>) {
 	}
 }
 
-// 切换当前点位
+// 切换当前点位并重载对应隔离的 Discussion
 function setSpot(spot: Spot | null) {
 	activeSpot = spot;
 	const term = spot ? `spot:${spot.id}` : defaultPath;
@@ -86,6 +97,7 @@ function setSpot(spot: Spot | null) {
 		mapping: "specific",
 		term,
 		strict: "1",
+		theme: resolveGiscusTheme(),
 	});
 
 	if (spot && sectionElement) {
@@ -93,23 +105,21 @@ function setSpot(spot: Spot | null) {
 	}
 }
 
-// 退出点位评论，返回页面评论模式
+// 退出点位专属模式，返回全站讨论
 function exitSpotMode() {
 	setSpot(null);
 }
 
-// 监听主题切换以更新 Giscus 昼夜风格
+// 监听昼夜模式切换并同步给 Giscus
 function syncGiscusTheme() {
-	if (typeof document === "undefined") return;
-	const isDark = document.documentElement.classList.contains("dark");
-	postGiscusConfig({ theme: isDark ? "dark" : "light" });
+	currentThemeUrl = resolveGiscusTheme();
+	postGiscusConfig({ theme: currentThemeUrl });
 }
 
-// 跑马灯卡片点击联动
+// 跑马灯口碑卡片点击联动
 function handleSelectReview(review: ReviewItem) {
 	if (!review.spotId) return;
 
-	// 通知地图聚焦到该点位
 	if (typeof window !== "undefined") {
 		window.dispatchEvent(
 			new CustomEvent("select-spot-on-map", {
@@ -118,7 +128,6 @@ function handleSelectReview(review: ReviewItem) {
 		);
 	}
 
-	// 查找点位对象并切换下方评论区
 	const target = spots.find((s) => s.id === review.spotId);
 	if (target) {
 		setSpot(target);
@@ -138,7 +147,7 @@ function handleSelectReview(review: ReviewItem) {
 	}
 }
 
-// 复制联系方式到剪贴板
+// 复制文本提示
 async function handleCopy(text: string, label: string) {
 	try {
 		await navigator.clipboard.writeText(text);
@@ -152,7 +161,7 @@ async function handleCopy(text: string, label: string) {
 	}, 2000);
 }
 
-// 组装邮件投稿链接
+// 构造唤起邮件客户端链接
 const mailtoUrl = $derived.by(() => {
 	if (!contactConfig?.email) return "#";
 	const subject = encodeURIComponent(
@@ -167,10 +176,11 @@ const mailtoUrl = $derived.by(() => {
 let themeObserver: MutationObserver | null = null;
 
 onMount(() => {
-	// 加载官方 Giscus Web Component
+	currentThemeUrl = resolveGiscusTheme();
+
+	// 动态加载官方 Giscus 引擎
 	import("https://esm.sh/giscus");
 
-	// 监听来自地图气泡等触发的切换事件
 	const handleSwitchEvent = (e: Event) => {
 		const customEvt = e as CustomEvent<{ spot: Spot }>;
 		if (customEvt.detail?.spot) {
@@ -180,7 +190,6 @@ onMount(() => {
 
 	window.addEventListener("switch-spot-comment", handleSwitchEvent);
 
-	// 监听站点暗色模式变化
 	if (typeof MutationObserver !== "undefined") {
 		themeObserver = new MutationObserver(() => {
 			syncGiscusTheme();
@@ -204,22 +213,18 @@ onDestroy(() => {
 });
 </script>
 
-<div
-	id="post-comments"
-	bind:this={sectionElement}
-	class="spot-comment-wrapper card-base p-6 md:p-8 mb-6 relative overflow-hidden"
->
-	<!-- 顶部口碑跑马灯区（仅在全站概览时或任何时候作为口碑墙展示） -->
+<div class="spot-comment-flow w-full">
+	<!-- 顶部精选口碑双向跑马灯卡片 -->
 	{#if reviews.length > 0}
-		<div class="marquee-section mb-6 pb-6 border-b border-[var(--line-color)]">
+		<div class="marquee-card card-base p-5 md:p-6 mb-4">
 			<div class="flex items-center justify-between mb-3 px-1">
 				<div class="flex items-center gap-2">
-					<span class="w-1.5 h-4 bg-[var(--primary)] rounded-full"></span>
-					<span class="text-sm font-semibold text-[var(--deep-text)]">
+					<span class="w-1.5 h-4 bg-(--primary) rounded-full"></span>
+					<span class="text-sm font-semibold text-(--deep-text)">
 						校园点位精选口碑
 					</span>
 				</div>
-				<span class="text-xs text-[var(--content-meta)] opacity-80">
+				<span class="text-xs text-(--content-meta) opacity-80">
 					支持左右滑动与悬浮暂停，点击卡片可联动定位
 				</span>
 			</div>
@@ -232,114 +237,102 @@ onDestroy(() => {
 		</div>
 	{/if}
 
-	<!-- 评论区头部与模式切换控制栏 -->
-	<div class="comment-control-header mb-6">
-		{#if activeSpot}
-			<!-- 点位专属评价模式 -->
-			<div class="spot-mode-banner flex flex-col md:flex-row md:items-center justify-between gap-4 p-4 rounded-xl bg-[var(--btn-regular-bg)] border border-[var(--line-color)]">
-				<div class="flex flex-col gap-1">
-					<div class="flex items-center gap-2 flex-wrap">
-						<span class="px-2 py-0.5 rounded text-xs font-semibold bg-[var(--primary)] text-white">
-							点位评价
-						</span>
-						{#if activeSpot.floor}
-							<span class="px-1.5 py-0.5 rounded text-xs bg-[var(--card-bg)] text-[var(--btn-content)] border border-[var(--line-color)]">
-								{activeSpot.floor}
-							</span>
-						{/if}
-						<h3 class="text-lg font-bold text-[var(--deep-text)]">
-							{activeSpot.name}
-						</h3>
-					</div>
-					{#if activeSpot.address}
-						<p class="text-xs text-[var(--content-meta)]">
-							地址：{activeSpot.address}
-						</p>
-					{/if}
-				</div>
-
-				<!-- 操作按钮组 -->
-				<div class="flex items-center gap-2 flex-wrap">
-					{#if contactConfig?.enable}
-						<button
-							type="button"
-							class="action-btn text-xs px-3 py-1.5 rounded-lg border border-[var(--line-color)] hover:border-[var(--primary)] bg-[var(--card-bg)] text-[var(--deep-text)] transition-colors"
-							onclick={() => (isContactModalOpen = true)}
-						>
-							无GitHub账号投稿
-						</button>
-					{/if}
-
-					<button
-						type="button"
-						class="action-btn-primary text-xs px-3 py-1.5 rounded-lg bg-[var(--primary)] text-white font-medium hover:opacity-90 transition-opacity"
-						onclick={exitSpotMode}
-					>
-						返回全站留言
-					</button>
-				</div>
-			</div>
-		{:else}
-			<!-- 全站留言模式 -->
-			<div class="page-mode-banner flex flex-col md:flex-row md:items-center justify-between gap-3">
-				<div>
-					<div class="flex items-center gap-2 mb-1">
-						<div class="w-1.5 h-5 bg-[var(--primary)] rounded-full"></div>
-						<h3 class="text-xl font-bold text-[var(--btn-content)]">
-							校园地图留言交流
-						</h3>
-					</div>
-					<p class="text-xs text-[var(--content-meta)] ml-3.5">
-						在此留言讨论全校地图、点位补充或建议；点击地图点位气泡中的评分/评价可进入专属讨论区
-					</p>
-				</div>
-
-				{#if contactConfig?.enable}
-					<button
-						type="button"
-						class="self-start md:self-auto text-xs px-3 py-1.5 rounded-lg border border-[var(--line-color)] hover:border-[var(--primary)] bg-[var(--btn-regular-bg)] text-[var(--deep-text)] transition-colors"
-						onclick={() => (isContactModalOpen = true)}
-					>
-						无GitHub账号？联系代录
-					</button>
+	<!-- dynamic 原生风格状态栏卡片 -->
+	<header class="dynamic-page-header card-base mb-4">
+		<div class="dynamic-page-heading">
+			<div class="dynamic-page-icon" aria-hidden="true">
+				{#if activeSpot}
+					<svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+						<path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" />
+						<circle cx="12" cy="9" r="2.5" />
+					</svg>
+				{:else}
+					<svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+						<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+					</svg>
 				{/if}
 			</div>
-		{/if}
-	</div>
-
-	<!-- 评论展示形式切换栏（图文动态流 vs Giscus 留言板） -->
-	<div class="view-mode-tabs flex items-center justify-between mb-5 border-b border-[var(--line-color)] pb-3">
-		<div class="flex items-center gap-2">
-			<button
-				type="button"
-				class="text-xs md:text-sm px-3.5 py-1.5 rounded-lg font-medium transition-all {viewMode === 'dynamic' ? 'bg-[var(--primary)] text-white shadow-xs' : 'text-[var(--content-meta)] hover:text-[var(--deep-text)] bg-[var(--btn-regular-bg)]'}"
-				onclick={() => (viewMode = "dynamic")}
-			>
-				图文动态评价
-			</button>
-			<button
-				type="button"
-				class="text-xs md:text-sm px-3.5 py-1.5 rounded-lg font-medium transition-all {viewMode === 'giscus' ? 'bg-[var(--primary)] text-white shadow-xs' : 'text-[var(--content-meta)] hover:text-[var(--deep-text)] bg-[var(--btn-regular-bg)]'}"
-				onclick={() => (viewMode = "giscus")}
-			>
-				Giscus 留言板
-			</button>
+			<div class="min-w-0 flex-1">
+				<div class="flex items-center gap-2 flex-wrap">
+					<h2 class="text-lg md:text-xl font-bold text-(--deep-text) truncate">
+						{activeSpot ? activeSpot.name : "校园地图留言交流"}
+					</h2>
+					<span class="px-2 py-0.5 rounded text-xs font-semibold bg-(--primary) text-white shrink-0">
+						{activeSpot ? "点位专属" : "全站讨论"}
+					</span>
+					{#if activeSpot?.floor}
+						<span class="px-1.5 py-0.5 rounded text-xs bg-(--btn-regular-bg) text-(--btn-content) shrink-0">
+							{activeSpot.floor}
+						</span>
+					{/if}
+				</div>
+				<p class="text-xs text-(--content-meta) mt-1 truncate">
+					{#if activeSpot}
+						{activeSpot.address ? `地址：${activeSpot.address}` : "当前点位专属讨论区，留言独立留存"}
+					{:else}
+						在此留言讨论全校地图、点位补充或建议；点击地图点位气泡中的评分/评价可进入专属讨论区
+					{/if}
+				</p>
+			</div>
 		</div>
-		<span class="text-xs text-[var(--content-meta)] hidden sm:inline">
-			{viewMode === "dynamic" ? "实景打卡相册与动态流" : "GitHub Discussions 实时留言"}
-		</span>
-	</div>
 
-	{#if viewMode === "dynamic"}
-		<SpotDynamicFeed
-			{reviews}
-			activeSpotId={activeSpot?.id}
-			activeSpotName={activeSpot?.name}
-			onRequestContact={() => (isContactModalOpen = true)}
-		/>
-	{:else}
-		<!-- Giscus 挂载区（纯静态 Web Component，属性驱动更新） -->
-		<div class="giscus-container min-h-[220px]">
+		<!-- 头部右侧操作动作 -->
+		<div class="flex items-center gap-2 flex-wrap justify-end">
+			{#if activeSpot}
+				<button
+					type="button"
+					class="text-xs px-3.5 py-1.5 rounded-lg bg-(--primary) text-white font-medium hover:opacity-90 transition-opacity cursor-pointer flex items-center gap-1"
+					onclick={exitSpotMode}
+				>
+					<svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+						<path d="M19 12H5M12 19l-7-7 7-7" />
+					</svg>
+					<span>返回全站留言</span>
+				</button>
+			{/if}
+
+			{#if contactConfig?.enable}
+				<button
+					type="button"
+					class="text-xs px-3.5 py-1.5 rounded-lg border border-(--line-divider) bg-(--btn-regular-bg) text-(--deep-text) hover:bg-(--card-bg) transition-colors cursor-pointer"
+					onclick={() => (isContactModalOpen = true)}
+				>
+					无GitHub账号？联系代录
+				</button>
+			{/if}
+		</div>
+	</header>
+
+	<!-- Firefly 标准风格评论承载卡片 -->
+	<div
+		id="post-comments"
+		bind:this={sectionElement}
+		class="card-base p-6 md:p-8 mb-6 relative overflow-hidden"
+	>
+		<!-- 装饰性背景环 -->
+		<div class="absolute top-0 right-0 w-32 h-32 opacity-5 pointer-events-none">
+			<svg viewBox="0 0 100 100" class="w-full h-full">
+				<circle cx="50" cy="50" r="40" fill="currentColor" class="text-(--primary)" />
+				<circle cx="50" cy="50" r="25" fill="none" stroke="currentColor" stroke-width="2" class="text-(--primary)" />
+				<circle cx="50" cy="50" r="10" fill="currentColor" class="text-(--primary)" />
+			</svg>
+		</div>
+
+		<!-- 评论区标题与状态引导 -->
+		<div class="relative z-10 mb-6">
+			<div class="flex items-center gap-3 mb-2">
+				<div class="w-1 h-6 bg-linear-to-b from-(--primary) to-transparent rounded-full"></div>
+				<h3 class="text-xl font-bold text-(--btn-content)">
+					{activeSpot ? `${activeSpot.name} 专属评价` : "地图全站讨论区"}
+				</h3>
+			</div>
+			<p class="text-sm text-(--content-meta) ml-4">
+				{activeSpot ? "GitHub Discussions 隔离驱动，评论仅在当前点位显示" : "在此留言讨论全校地图、点位补充或维护建议"}
+			</p>
+		</div>
+
+		<!-- Giscus 挂载区 -->
+		<div class="relative z-10 pl-1 pr-1 min-h-[220px]">
 			{#if giscusConfig.repo && giscusConfig.repoId}
 				<giscus-widget
 					id="comments"
@@ -353,13 +346,13 @@ onDestroy(() => {
 					reactionsEnabled={giscusConfig.reactionsEnabled ?? "1"}
 					emitMetadata={giscusConfig.emitMetadata ?? "0"}
 					inputPosition={giscusConfig.inputPosition ?? "top"}
-					theme={typeof document !== "undefined" && document.documentElement.classList.contains("dark") ? "dark" : "light"}
+					theme={currentThemeUrl}
 					lang={giscusConfig.lang ?? "zh-CN"}
 					loading={giscusConfig.loading ?? "lazy"}
 				></giscus-widget>
 			{:else}
-				<div class="p-8 text-center rounded-xl bg-[var(--btn-regular-bg)] border border-dashed border-[var(--line-color)] text-[var(--content-meta)]">
-					<p class="text-sm font-semibold mb-1 text-[var(--deep-text)]">
+				<div class="p-8 text-center rounded-xl bg-(--btn-regular-bg) border border-dashed border-(--line-divider) text-(--content-meta)">
+					<p class="text-sm font-semibold mb-1 text-(--deep-text)">
 						Giscus 评论系统待绑定 GitHub 仓库
 					</p>
 					<p class="text-xs max-w-md mx-auto leading-relaxed">
@@ -368,20 +361,20 @@ onDestroy(() => {
 				</div>
 			{/if}
 		</div>
-	{/if}
+	</div>
 </div>
 
 <!-- 备用投稿与联系管理员弹窗 -->
 {#if isContactModalOpen}
 	<div class="modal-backdrop fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
-		<div class="modal-card card-base max-w-md w-full p-6 relative rounded-2xl border border-[var(--line-color)] bg-[var(--card-bg)] shadow-2xl">
-			<div class="flex items-center justify-between mb-4 border-b border-[var(--line-color)] pb-3">
-				<h4 class="text-base font-bold text-[var(--deep-text)]">
+		<div class="modal-card card-base max-w-md w-full p-6 relative rounded-2xl border border-(--line-divider) bg-(--card-bg) shadow-2xl">
+			<div class="flex items-center justify-between mb-4 border-b border-(--line-divider) pb-3">
+				<h4 class="text-base font-bold text-(--deep-text)">
 					线下与备用投稿通道
 				</h4>
 				<button
 					type="button"
-					class="close-btn text-[var(--content-meta)] hover:text-[var(--deep-text)] text-sm p-1"
+					class="close-btn text-(--content-meta) hover:text-(--deep-text) text-sm p-1 cursor-pointer"
 					aria-label="关闭弹窗"
 					onclick={() => (isContactModalOpen = false)}
 				>
@@ -389,27 +382,27 @@ onDestroy(() => {
 				</button>
 			</div>
 
-			<p class="text-xs text-[var(--content-meta)] leading-relaxed mb-4">
+			<p class="text-xs text-(--content-meta) leading-relaxed mb-4">
 				{contactConfig?.noticeText}
 			</p>
 
 			<div class="space-y-3 mb-5">
 				{#if contactConfig?.email}
-					<div class="flex items-center justify-between p-3 rounded-xl bg-[var(--btn-regular-bg)] border border-[var(--line-color)]">
+					<div class="flex items-center justify-between p-3 rounded-xl bg-(--btn-regular-bg) border border-(--line-divider)">
 						<div class="flex flex-col">
-							<span class="text-xs text-[var(--content-meta)]">管理员邮箱</span>
-							<span class="text-sm font-mono font-medium text-[var(--deep-text)]">{contactConfig.email}</span>
+							<span class="text-xs text-(--content-meta)">管理员邮箱</span>
+							<span class="text-sm font-mono font-medium text-(--deep-text)">{contactConfig.email}</span>
 						</div>
 						<div class="flex items-center gap-2">
 							<a
 								href={mailtoUrl}
-								class="text-xs px-2.5 py-1 rounded bg-[var(--primary)] text-white font-medium hover:opacity-90"
+								class="text-xs px-2.5 py-1 rounded bg-(--primary) text-white font-medium hover:opacity-90"
 							>
 								唤起邮件
 							</a>
 							<button
 								type="button"
-								class="text-xs px-2.5 py-1 rounded border border-[var(--line-color)] text-[var(--deep-text)] hover:bg-[var(--card-bg)]"
+								class="text-xs px-2.5 py-1 rounded border border-(--line-divider) text-(--deep-text) hover:bg-(--card-bg) cursor-pointer"
 								onclick={() => handleCopy(contactConfig.email ?? "", "邮箱地址")}
 							>
 								复制
@@ -419,14 +412,14 @@ onDestroy(() => {
 				{/if}
 
 				{#if contactConfig?.qq}
-					<div class="flex items-center justify-between p-3 rounded-xl bg-[var(--btn-regular-bg)] border border-[var(--line-color)]">
+					<div class="flex items-center justify-between p-3 rounded-xl bg-(--btn-regular-bg) border border-(--line-divider)">
 						<div class="flex flex-col">
-							<span class="text-xs text-[var(--content-meta)]">QQ / 交流群</span>
-							<span class="text-sm font-mono font-medium text-[var(--deep-text)]">{contactConfig.qq}</span>
+							<span class="text-xs text-(--content-meta)">QQ / 交流群</span>
+							<span class="text-sm font-mono font-medium text-(--deep-text)">{contactConfig.qq}</span>
 						</div>
 						<button
 							type="button"
-							class="text-xs px-2.5 py-1 rounded border border-[var(--line-color)] text-[var(--deep-text)] hover:bg-[var(--card-bg)]"
+							class="text-xs px-2.5 py-1 rounded border border-(--line-divider) text-(--deep-text) hover:bg-(--card-bg) cursor-pointer"
 							onclick={() => handleCopy(contactConfig.qq ?? "", "QQ号")}
 						>
 							复制
@@ -436,7 +429,7 @@ onDestroy(() => {
 			</div>
 
 			{#if copyMessage}
-				<div class="text-xs text-center py-1 px-2 rounded bg-[var(--btn-regular-bg)] text-[var(--primary)] font-medium mb-3">
+				<div class="text-xs text-center py-1 px-2 rounded bg-(--btn-regular-bg) text-(--primary) font-medium mb-3">
 					{copyMessage}
 				</div>
 			{/if}
@@ -444,7 +437,7 @@ onDestroy(() => {
 			<div class="text-right">
 				<button
 					type="button"
-					class="text-xs px-4 py-2 rounded-lg bg-[var(--btn-regular-bg)] text-[var(--deep-text)] hover:bg-[var(--line-color)]"
+					class="text-xs px-4 py-2 rounded-lg bg-(--btn-regular-bg) text-(--deep-text) hover:bg-(--line-divider) cursor-pointer"
 					onclick={() => (isContactModalOpen = false)}
 				>
 					我知道了
@@ -455,15 +448,6 @@ onDestroy(() => {
 {/if}
 
 <style>
-.spot-comment-wrapper {
-	transition: border-color 0.3s ease;
-}
-
-.action-btn,
-.action-btn-primary {
-	cursor: pointer;
-}
-
 .modal-backdrop {
 	animation: fadeIn 0.15s ease-out;
 }

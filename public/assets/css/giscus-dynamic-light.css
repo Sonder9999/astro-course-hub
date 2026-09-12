@@ -1,0 +1,163 @@
+/*!
+ * Giscus Dynamic Theme - Light
+ * 适配 Firefly / Astro Course Hub 动态页面风格主题
+ */
+main {
+	--color-prettylights-syntax-comment: #6e7781;
+	--color-prettylights-syntax-constant: #0550ae;
+	--color-prettylights-syntax-entity: #8250df;
+	--color-prettylights-syntax-storage-modifier-import: #24292f;
+	--color-prettylights-syntax-entity-tag: #116329;
+	--color-prettylights-syntax-keyword: #cf222e;
+	--color-prettylights-syntax-string: #0a3069;
+	--color-prettylights-syntax-variable: #953800;
+	--color-prettylights-syntax-brackethighlighter-unmatched: #82071e;
+	--color-prettylights-syntax-invalid-illegal-text: #f6f8fa;
+	--color-prettylights-syntax-invalid-illegal-bg: #82071e;
+	--color-prettylights-syntax-carriage-return-text: #f6f8fa;
+	--color-prettylights-syntax-carriage-return-bg: #cf222e;
+	--color-prettylights-syntax-string-regexp: #116329;
+	--color-prettylights-syntax-markup-list: #3b2300;
+	--color-prettylights-syntax-markup-heading: #0550ae;
+	--color-prettylights-syntax-markup-italic: #24292f;
+	--color-prettylights-syntax-markup-bold: #24292f;
+	--color-prettylights-syntax-markup-deleted-text: #82071e;
+	--color-prettylights-syntax-markup-deleted-bg: #ffebe9;
+	--color-prettylights-syntax-markup-inserted-text: #116329;
+	--color-prettylights-syntax-markup-inserted-bg: #dafbe1;
+	--color-prettylights-syntax-markup-changed-text: #953800;
+	--color-prettylights-syntax-markup-changed-bg: #ffd8b5;
+	--color-prettylights-syntax-markup-ignored-text: #6e7781;
+	--color-prettylights-syntax-markup-ignored-bg: #0550ae;
+	--color-prettylights-syntax-meta-diff-range: #8250df;
+	--color-prettylights-syntax-brackethighlighter-angle: #57606a;
+	--color-prettylights-syntax-subscript-superscript: #57606a;
+	--color-prettylights-syntax-constant-other-reference-link: #0a3069;
+	--color-btn-text: #24292f;
+	--color-btn-bg: #f8fafc;
+	--color-btn-border: rgba(0, 0, 0, 0.08);
+	--color-btn-shadow: 0 1px 0 rgba(0, 0, 0, 0.04);
+	--color-btn-inset-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25);
+	--color-btn-hover-bg: #f1f5f9;
+	--color-btn-hover-border: rgba(0, 0, 0, 0.12);
+	--color-btn-active-bg: #e2e8f0;
+	--color-btn-active-border: rgba(0, 0, 0, 0.15);
+	--color-btn-selected-bg: #e2e8f0;
+	--color-btn-primary-text: #ffffff;
+	--color-btn-primary-bg: #0ea5e9;
+	--color-btn-primary-border: transparent;
+	--color-btn-primary-shadow: 0 1px 2px rgba(14, 165, 233, 0.2);
+	--color-btn-primary-inset-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+	--color-btn-primary-hover-bg: #0284c7;
+	--color-btn-primary-hover-border: transparent;
+	--color-btn-primary-selected-bg: #0369a1;
+	--color-btn-primary-disabled-text: rgba(255, 255, 255, 0.8);
+	--color-btn-primary-disabled-bg: #7dd3fc;
+	--color-btn-primary-disabled-border: transparent;
+	--color-action-list-item-default-hover-bg: rgba(208, 215, 222, 0.32);
+	--color-segmented-control-bg: #f1f5f9;
+	--color-segmented-control-button-bg: #ffffff;
+	--color-segmented-control-button-selected-border: #cbd5e1;
+	--color-fg-default: #1e293b;
+	--color-fg-muted: #64748b;
+	--color-fg-subtle: #94a3b8;
+	--color-canvas-default: #ffffff;
+	--color-canvas-overlay: #ffffff;
+	--color-canvas-inset: #f8fafc;
+	--color-canvas-subtle: #f8fafc;
+	--color-border-default: rgba(0, 0, 0, 0.08);
+	--color-border-muted: rgba(0, 0, 0, 0.05);
+	--color-neutral-muted: rgba(100, 116, 139, 0.1);
+	--color-accent-fg: #0ea5e9;
+	--color-accent-emphasis: #0ea5e9;
+	--color-accent-muted: rgba(14, 165, 233, 0.4);
+	--color-accent-subtle: #e0f2fe;
+	--color-success-fg: #10b981;
+	--color-attention-fg: #f59e0b;
+	--color-attention-muted: rgba(245, 158, 11, 0.4);
+	--color-attention-subtle: #fef3c7;
+	--color-danger-fg: #ef4444;
+	--color-danger-muted: rgba(239, 68, 68, 0.4);
+	--color-danger-subtle: #fee2e2;
+	--color-primer-shadow-inset: inset 0 1px 0 rgba(208, 215, 222, 0.2);
+	--color-scale-gray-1: #f1f5f9;
+	--color-scale-blue-1: #e0f2fe;
+
+	font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+/* 动态(dynamic) 风格卡片定制 */
+.gsc-comment {
+	border-radius: 1rem !important;
+	border: 1px solid var(--color-border-default) !important;
+	background-color: var(--color-canvas-default) !important;
+	box-shadow: 0 4px 16px rgba(0, 0, 0, 0.03) !important;
+	transition: all 0.25s ease !important;
+	margin-bottom: 1.25rem !important;
+	overflow: hidden !important;
+}
+
+.gsc-comment:hover {
+	border-color: var(--color-accent-fg) !important;
+	box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06) !important;
+}
+
+.gsc-comment-header {
+	border-bottom: 1px solid var(--color-border-muted) !important;
+	padding: 0.875rem 1.25rem !important;
+	background: var(--color-canvas-subtle) !important;
+}
+
+.gsc-comment-header img.avatar {
+	border-radius: 50% !important;
+}
+
+.gsc-comment-content {
+	padding: 1.25rem !important;
+	font-size: 0.9375rem !important;
+	line-height: 1.65 !important;
+	color: var(--color-fg-default) !important;
+}
+
+/* 评论内图片样式对齐 dynamic 画廊风格 */
+.gsc-comment-content img {
+	border-radius: 0.75rem !important;
+	max-width: 100% !important;
+	max-height: 28rem !important;
+	object-fit: cover !important;
+	box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08) !important;
+	border: 1px solid var(--color-border-muted) !important;
+	margin: 0.5rem 0 !important;
+}
+
+/* 表情反应悬浮窗与浮层修复 */
+.gsc-reactions-popover {
+	background-color: #ffffff !important;
+	backdrop-filter: blur(16px) !important;
+	border: 1px solid rgba(0, 0, 0, 0.1) !important;
+	border-radius: 0.75rem !important;
+	box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12) !important;
+	color: #1e293b !important;
+}
+
+.gsc-reactions-popover-header {
+	color: #1e293b !important;
+	border-bottom: 1px solid rgba(0, 0, 0, 0.08) !important;
+}
+
+/* 评论输入框美化 */
+.gsc-comment-box {
+	border-radius: 1rem !important;
+	border: 1px solid var(--color-border-default) !important;
+	box-shadow: 0 4px 16px rgba(0, 0, 0, 0.03) !important;
+	overflow: hidden !important;
+}
+
+.gsc-comment-box-textarea {
+	border-radius: 0.75rem !important;
+}
+
+.gsc-comment-box-buttons button[type="submit"] {
+	border-radius: 0.5rem !important;
+}
+
