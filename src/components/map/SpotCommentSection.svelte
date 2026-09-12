@@ -3,6 +3,7 @@ import { onDestroy, onMount } from "svelte";
 import ReviewsMarquee from "@/components/common/ReviewsMarquee.svelte";
 import type { ReviewItem, SpotContactConfig } from "@/types/review";
 import type { Spot } from "@/types/spot";
+import SpotDynamicFeed from "./SpotDynamicFeed.svelte";
 
 interface Props {
 	/** 默认页面路径，例如 "/map/" */
@@ -48,6 +49,7 @@ let activeSpot: Spot | null = $state(null);
 let isContactModalOpen: boolean = $state(false);
 let copyMessage: string = $state("");
 let copyTimer: ReturnType<typeof setTimeout> | null = null;
+let viewMode: "dynamic" | "giscus" = $state("dynamic");
 
 const currentTerm = $derived(
 	activeSpot ? `spot:${activeSpot.id}` : defaultPath,
@@ -305,36 +307,68 @@ onDestroy(() => {
 		{/if}
 	</div>
 
-	<!-- Giscus 挂载区（纯静态 Web Component，属性驱动更新） -->
-	<div class="giscus-container min-h-[220px]">
-		{#if giscusConfig.repo && giscusConfig.repoId}
-			<giscus-widget
-				id="comments"
-				repo={giscusConfig.repo}
-				repoId={giscusConfig.repoId}
-				category={giscusConfig.category}
-				categoryId={giscusConfig.categoryId}
-				mapping="specific"
-				term={currentTerm}
-				strict="1"
-				reactionsEnabled={giscusConfig.reactionsEnabled ?? "1"}
-				emitMetadata={giscusConfig.emitMetadata ?? "0"}
-				inputPosition={giscusConfig.inputPosition ?? "top"}
-				theme={typeof document !== "undefined" && document.documentElement.classList.contains("dark") ? "dark" : "light"}
-				lang={giscusConfig.lang ?? "zh-CN"}
-				loading={giscusConfig.loading ?? "lazy"}
-			></giscus-widget>
-		{:else}
-			<div class="p-8 text-center rounded-xl bg-[var(--btn-regular-bg)] border border-dashed border-[var(--line-color)] text-[var(--content-meta)]">
-				<p class="text-sm font-semibold mb-1 text-[var(--deep-text)]">
-					Giscus 评论系统待绑定 GitHub 仓库
-				</p>
-				<p class="text-xs max-w-md mx-auto leading-relaxed">
-					点位专属隔离切换引擎已就绪。在 <code>src/config/commentConfig.ts</code> 中填写您的 GitHub repo 与 repoId 即可激活实时评论输入。
-				</p>
-			</div>
-		{/if}
+	<!-- 评论展示形式切换栏（图文动态流 vs Giscus 留言板） -->
+	<div class="view-mode-tabs flex items-center justify-between mb-5 border-b border-[var(--line-color)] pb-3">
+		<div class="flex items-center gap-2">
+			<button
+				type="button"
+				class="text-xs md:text-sm px-3.5 py-1.5 rounded-lg font-medium transition-all {viewMode === 'dynamic' ? 'bg-[var(--primary)] text-white shadow-xs' : 'text-[var(--content-meta)] hover:text-[var(--deep-text)] bg-[var(--btn-regular-bg)]'}"
+				onclick={() => (viewMode = "dynamic")}
+			>
+				图文动态评价
+			</button>
+			<button
+				type="button"
+				class="text-xs md:text-sm px-3.5 py-1.5 rounded-lg font-medium transition-all {viewMode === 'giscus' ? 'bg-[var(--primary)] text-white shadow-xs' : 'text-[var(--content-meta)] hover:text-[var(--deep-text)] bg-[var(--btn-regular-bg)]'}"
+				onclick={() => (viewMode = "giscus")}
+			>
+				Giscus 留言板
+			</button>
+		</div>
+		<span class="text-xs text-[var(--content-meta)] hidden sm:inline">
+			{viewMode === "dynamic" ? "实景打卡相册与动态流" : "GitHub Discussions 实时留言"}
+		</span>
 	</div>
+
+	{#if viewMode === "dynamic"}
+		<SpotDynamicFeed
+			{reviews}
+			activeSpotId={activeSpot?.id}
+			activeSpotName={activeSpot?.name}
+			onRequestContact={() => (isContactModalOpen = true)}
+		/>
+	{:else}
+		<!-- Giscus 挂载区（纯静态 Web Component，属性驱动更新） -->
+		<div class="giscus-container min-h-[220px]">
+			{#if giscusConfig.repo && giscusConfig.repoId}
+				<giscus-widget
+					id="comments"
+					repo={giscusConfig.repo}
+					repoId={giscusConfig.repoId}
+					category={giscusConfig.category}
+					categoryId={giscusConfig.categoryId}
+					mapping="specific"
+					term={currentTerm}
+					strict="1"
+					reactionsEnabled={giscusConfig.reactionsEnabled ?? "1"}
+					emitMetadata={giscusConfig.emitMetadata ?? "0"}
+					inputPosition={giscusConfig.inputPosition ?? "top"}
+					theme={typeof document !== "undefined" && document.documentElement.classList.contains("dark") ? "dark" : "light"}
+					lang={giscusConfig.lang ?? "zh-CN"}
+					loading={giscusConfig.loading ?? "lazy"}
+				></giscus-widget>
+			{:else}
+				<div class="p-8 text-center rounded-xl bg-[var(--btn-regular-bg)] border border-dashed border-[var(--line-color)] text-[var(--content-meta)]">
+					<p class="text-sm font-semibold mb-1 text-[var(--deep-text)]">
+						Giscus 评论系统待绑定 GitHub 仓库
+					</p>
+					<p class="text-xs max-w-md mx-auto leading-relaxed">
+						点位专属隔离切换引擎已就绪。在 <code>src/config/commentConfig.ts</code> 中填写您的 GitHub repo 与 repoId 即可激活实时评论输入。
+					</p>
+				</div>
+			{/if}
+		</div>
+	{/if}
 </div>
 
 <!-- 备用投稿与联系管理员弹窗 -->
