@@ -200,9 +200,12 @@ async function loadGiscusReviews() {
 	}
 }
 
+let lastDiscussionCount: number | null = null;
+
 // 切换当前点位并重载对应隔离的 Discussion（默认不滚动/不跳转页面视野）
 function setSpot(spot: Spot | null, scrollToComments = false) {
 	activeSpot = spot;
+	lastDiscussionCount = null;
 	const term = spot ? `spot:${spot.id}` : defaultPath;
 	postGiscusConfig({
 		mapping: "specific",
@@ -282,8 +285,16 @@ onMount(() => {
 
 	const handleGiscusMessage = (event: MessageEvent) => {
 		if (event.origin !== "https://giscus.app") return;
-		if (event.data?.giscus?.discussion || event.data?.giscus?.resizeHeight) {
-			loadGiscusReviews();
+		const discussion = event.data?.giscus?.discussion;
+		if (discussion) {
+			const count = discussion.totalCommentCount ?? 0;
+			// 仅当讨论总条数确实有新增变动（如用户新提交了评论）时才重新拉取，避免初次挂载重复触发
+			if (lastDiscussionCount === null) {
+				lastDiscussionCount = count;
+			} else if (count !== lastDiscussionCount) {
+				lastDiscussionCount = count;
+				loadGiscusReviews();
+			}
 		}
 	};
 

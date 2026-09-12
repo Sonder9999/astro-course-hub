@@ -113,29 +113,14 @@ function updateMapTheme(): void {
 
 let currentInfoWindowPosition: any = null;
 let activeInfoWindowSpot: Spot | null = null;
+let currentInfoWindowContainer: HTMLElement | null = null;
+let lastClickTime = 0;
+let lastClickedSpotId = "";
 
-// 点击点位：同时打开弹窗并立马联动切换下方评论系统（绝不跳转/滚动页面视野）
-function handleSpotClick(spot: Spot, position: any): void {
-	openSpotInfoWindow(spot, position);
-	if (typeof window !== "undefined") {
-		window.dispatchEvent(
-			new CustomEvent("switch-spot-comment", {
-				detail: {
-					spot,
-					scrollToComments: false,
-				},
-			}),
-		);
-	}
-}
-
-// 打开信息弹窗
-function openSpotInfoWindow(spot: Spot, position: any): void {
-	const latestSpot = currentSpots.find((s) => s.id === spot.id) || spot;
-	activeInfoWindowSpot = latestSpot;
-	currentInfoWindowPosition = position;
-	const cat = categories[latestSpot.industry];
-	const contentHtml = buildInfoWindowHtml(latestSpot, cat);
+// 构造弹窗 DOM 容器
+function createInfoWindowContainer(spot: Spot): HTMLElement {
+	const cat = categories[spot.industry];
+	const contentHtml = buildInfoWindowHtml(spot, cat);
 	const container = document.createElement("div");
 	container.className = "spot-info-container";
 	container.innerHTML = `
@@ -154,6 +139,8 @@ function openSpotInfoWindow(spot: Spot, position: any): void {
 		infoWindow.close();
 		activeInfoWindowSpot = null;
 		currentInfoWindowPosition = null;
+		currentInfoWindowContainer = null;
+		lastClickedSpotId = "";
 	});
 
 	// 点击评分或评价徽章，联动切换点位专属评价区（不跳转页面，保持当前地图视野）
@@ -162,15 +149,109 @@ function openSpotInfoWindow(spot: Spot, position: any): void {
 			if (typeof window !== "undefined") {
 				window.dispatchEvent(
 					new CustomEvent("switch-spot-comment", {
-						detail: { spot: latestSpot, scrollToComments: false },
+						detail: { spot, scrollToComments: false },
 					}),
 				);
 			}
 		});
 	});
 
-	infoWindow.setContent(container);
+	return container;
+}
+
+// 打开信息弹窗
+function openSpotInfoWindow(spot: Spot, position: any): void {
+	const latestSpot = currentSpots.find((s) => s.id === spot.id) || spot;
+	activeInfoWindowSpot = latestSpot;
+	currentInfoWindowPosition = position;
+	currentInfoWindowContainer = createInfoWindowContainer(latestSpot);
+	infoWindow.setContent(currentInfoWindowContainer);
 	infoWindow.open(mapInstance, position);
+}
+
+// 仅静默就地更新已打开的弹窗内容（绝不重新调用 open 动画，彻底杜绝闪烁）
+function updateOpenInfoWindowContent(spot: Spot): void {
+	if (
+		!infoWindow ||
+		!activeInfoWindowSpot ||
+		activeInfoWindowSpot.id !== spot.id
+	) {
+		return;
+	}
+	activeInfoWindowSpot = spot;
+
+	// 就地精准更新已有弹窗底部的评分与评论条数 DOM，绝对不替换外层容器，彻底杜绝触发 CSS 入场动画导致二次闪烁
+	const targetContainer =
+		currentInfoWindowContainer ||
+		(infoWindow.getContent && typeof infoWindow.getContent === "function"
+			? (infoWindow.getContent() as HTMLElement)
+			: null);
+
+	if (targetContainer) {
+		const footerEl = targetContainer.querySelector(".spot-meta-footer");
+		if (footerEl) {
+			const cat = categories[spot.industry];
+			const ratingHtml = renderRatingHtml(spot.rating, spot.id);
+			const count =
+				spot.commentCount !== undefined
+					? spot.commentCount
+					: (spot.comments?.length ?? 0);
+			const commentHtml = renderCommentHtml(count, spot.id);
+
+			footerEl.innerHTML = `
+				${ratingHtml}
+				<div class="spot-meta-sep"></div>
+				${commentHtml}
+			`;
+
+			// 重新绑定新生成的评价徽章点击事件
+			footerEl.querySelectorAll(".spot-comment-interactive").forEach((el) => {
+				el.addEventListener("click", () => {
+					if (typeof window !== "undefined") {
+						window.dispatchEvent(
+							new CustomEvent("switch-spot-comment", {
+								detail: { spot, scrollToComments: false },
+							}),
+						);
+					}
+				});
+			});
+			return;
+		}
+	}
+
+	// 降级兜底：仅当无法定位到已有 DOM 时才重新设置，并清除动画样式防止闪烁
+	const container = createInfoWindowContainer(spot);
+	container.style.animation = "none";
+	currentInfoWindowContainer = container;
+	infoWindow.setContent(container);
+}
+
+// 点击点位：同时打开弹窗并立马联动切换下方评论系统（防抖且禁止重复打开同一已展示点位，彻底消除闪烁）
+function handleSpotClick(spot: Spot, position: any): void {
+	// 如果当前弹窗已经展示此点位，直接忽略，严禁重复开启与闪烁
+	if (activeInfoWindowSpot?.id === spot.id) {
+		return;
+	}
+
+	const now = performance.now();
+	if (spot.id === lastClickedSpotId && now - lastClickTime < 400) {
+		return;
+	}
+	lastClickTime = now;
+	lastClickedSpotId = spot.id;
+
+	openSpotInfoWindow(spot, position);
+	if (typeof window !== "undefined") {
+		window.dispatchEvent(
+			new CustomEvent("switch-spot-comment", {
+				detail: {
+					spot,
+					scrollToComments: false,
+				},
+			}),
+		);
+	}
 }
 
 // 初始化高德地图与点位聚合
@@ -213,6 +294,13 @@ async function loadMap(): Promise<void> {
 			isCustom: true,
 			offset: new AMap.Pixel(0, -36),
 			autoMove: true,
+		});
+
+		infoWindow.on("close", () => {
+			activeInfoWindowSpot = null;
+			currentInfoWindowPosition = null;
+			currentInfoWindowContainer = null;
+			lastClickedSpotId = "";
 		});
 
 		mapInstance.addControl(new AMap.Scale());
@@ -280,7 +368,42 @@ function initCluster(AMap: any): void {
 
 	clusterInstance.on("click", (e: any) => {
 		if (e.clusterData && e.clusterData.length > 1) {
-			mapInstance.setZoomAndCenter(mapInstance.getZoom() + 2, e.lnglat);
+			if (e.clusterData.length === 2) {
+				// 仅有 2 个点位的聚合簇：不存在下一层级子聚合，目标就是直接散开这两个点位
+				// 放大至超过最大聚合层级（17 级+），确保一次点击 100% 散开为 2 个独立标记，绝无需点击两次
+				const targetMaxZoom = (cluster.maxZoom ?? 16) + 1;
+				const lng1 =
+					e.clusterData[0].data?.lon ??
+					(e.clusterData[0].lnglat?.getLng
+						? e.clusterData[0].lnglat.getLng()
+						: e.clusterData[0].lnglat?.[0]);
+				const lat1 =
+					e.clusterData[0].data?.lat ??
+					(e.clusterData[0].lnglat?.getLat
+						? e.clusterData[0].lnglat.getLat()
+						: e.clusterData[0].lnglat?.[1]);
+				const lng2 =
+					e.clusterData[1].data?.lon ??
+					(e.clusterData[1].lnglat?.getLng
+						? e.clusterData[1].lnglat.getLng()
+						: e.clusterData[1].lnglat?.[0]);
+				const lat2 =
+					e.clusterData[1].data?.lat ??
+					(e.clusterData[1].lnglat?.getLat
+						? e.clusterData[1].lnglat.getLat()
+						: e.clusterData[1].lnglat?.[1]);
+
+				const center =
+					Number.isFinite(lng1) && Number.isFinite(lng2)
+						? [(lng1 + lng2) / 2, (lat1 + lat2) / 2]
+						: e.lnglat;
+
+				const nextZoom = Math.max(mapInstance.getZoom() + 2, targetMaxZoom);
+				mapInstance.setZoomAndCenter(nextZoom, center);
+			} else {
+				// 多点位聚合（如 36 个点位）：层级式递进，放大至下一层级（+2 级），展现子聚合簇，不直接跳至最大层级
+				mapInstance.setZoomAndCenter(mapInstance.getZoom() + 2, e.lnglat);
+			}
 		} else if (e.clusterData && e.clusterData.length === 1) {
 			const spot: Spot = e.clusterData[0].data;
 			handleSpotClick(spot, e.lnglat);
@@ -420,16 +543,11 @@ $effect(() => {
 				return s;
 			});
 
-			// 如果当前信息弹窗正是此点位，实时重绘弹窗中的评分和评论数
-			if (
-				activeInfoWindowSpot?.id === spotId &&
-				infoWindow &&
-				mapInstance &&
-				currentInfoWindowPosition
-			) {
+			// 如果当前信息弹窗正是此点位，静默就地更新弹窗中的评分和评论数（不重新打开弹窗，杜绝闪烁）
+			if (activeInfoWindowSpot?.id === spotId && infoWindow && mapInstance) {
 				const updated = currentSpots.find((s) => s.id === spotId);
 				if (updated) {
-					openSpotInfoWindow(updated, currentInfoWindowPosition);
+					updateOpenInfoWindowContent(updated);
 				}
 			}
 		}
