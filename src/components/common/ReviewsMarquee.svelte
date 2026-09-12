@@ -292,6 +292,16 @@ onDestroy(() => {
 							</div>
 						</div>
 						<p class="review-body">{item.content}</p>
+						{#if item.images && item.images.length > 0}
+							<div class="review-images-badge">
+								<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+									<rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+									<circle cx="8.5" cy="8.5" r="1.5"/>
+									<polyline points="21 15 16 10 5 21"/>
+								</svg>
+								<span>含 {item.images.length} 张图片</span>
+							</div>
+						{/if}
 						{#if item.spotName}
 							<div class="review-spot-footer">
 								<span class="spot-icon">
@@ -352,6 +362,16 @@ onDestroy(() => {
 							</div>
 						</div>
 						<p class="review-body">{item.content}</p>
+						{#if item.images && item.images.length > 0}
+							<div class="review-images-badge">
+								<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+									<rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+									<circle cx="8.5" cy="8.5" r="1.5"/>
+									<polyline points="21 15 16 10 5 21"/>
+								</svg>
+								<span>含 {item.images.length} 张图片</span>
+							</div>
+						{/if}
 						{#if item.spotName}
 							<div class="review-spot-footer">
 								<span class="spot-icon">
@@ -543,6 +563,19 @@ onDestroy(() => {
 	-webkit-line-clamp: 3;
 	-webkit-box-orient: vertical;
 	overflow: hidden;
+}
+
+.review-images-badge {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	margin-top: 6px;
+	padding: 2px 6px;
+	border-radius: 4px;
+	font-size: 11px;
+	color: var(--primary);
+	background: oklch(from var(--primary) l c h / 0.08);
+	width: fit-content;
 }
 
 .review-spot-footer {

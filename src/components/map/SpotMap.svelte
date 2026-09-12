@@ -4,12 +4,14 @@ import type {
 	MapClusterConfig,
 	MapThemeStyles,
 } from "@/config/mapConfig";
+import type { ReviewItem } from "@/types/review";
 import type { Spot, SpotIndustry } from "@/types/spot";
 import {
 	buildInfoWindowHtml,
 	createClusterMarkerElement,
 	createMarkerElement,
 } from "@/utils/map-marker-utils";
+import { calculateSingleSpotStats } from "@/utils/spot-aggregate-utils";
 
 interface Props {
 	spots: Spot[];
@@ -79,6 +81,12 @@ const categoryCounts: Record<SpotIndustry, number> = $derived(
 	),
 );
 
+// 点位响应式列表（支持动态评分注入与统计更新）
+let currentSpots: Spot[] = $state([...spots]);
+$effect(() => {
+	currentSpots = [...spots];
+});
+
 // 地图实例与聚合对象状态
 let mapContainer: HTMLDivElement | undefined = $state(undefined);
 let mapInstance: any = $state(null);
@@ -103,10 +111,31 @@ function updateMapTheme(): void {
 	mapInstance.setMapStyle(targetStyle);
 }
 
+let currentInfoWindowPosition: any = null;
+let activeInfoWindowSpot: Spot | null = null;
+
+// 点击点位：同时打开弹窗并立马联动切换下方评论系统（绝不跳转/滚动页面视野）
+function handleSpotClick(spot: Spot, position: any): void {
+	openSpotInfoWindow(spot, position);
+	if (typeof window !== "undefined") {
+		window.dispatchEvent(
+			new CustomEvent("switch-spot-comment", {
+				detail: {
+					spot,
+					scrollToComments: false,
+				},
+			}),
+		);
+	}
+}
+
 // 打开信息弹窗
 function openSpotInfoWindow(spot: Spot, position: any): void {
-	const cat = categories[spot.industry];
-	const contentHtml = buildInfoWindowHtml(spot, cat);
+	const latestSpot = currentSpots.find((s) => s.id === spot.id) || spot;
+	activeInfoWindowSpot = latestSpot;
+	currentInfoWindowPosition = position;
+	const cat = categories[latestSpot.industry];
+	const contentHtml = buildInfoWindowHtml(latestSpot, cat);
 	const container = document.createElement("div");
 	container.className = "spot-info-container";
 	container.innerHTML = `
@@ -123,15 +152,17 @@ function openSpotInfoWindow(spot: Spot, position: any): void {
 		`;
 	container.querySelector(".spot-info-close")?.addEventListener("click", () => {
 		infoWindow.close();
+		activeInfoWindowSpot = null;
+		currentInfoWindowPosition = null;
 	});
 
-	// 点击评分或评价徽章，派发事件切换至点位专属评价区
+	// 点击评分或评价徽章，联动切换点位专属评价区（不跳转页面，保持当前地图视野）
 	container.querySelectorAll(".spot-comment-interactive").forEach((el) => {
 		el.addEventListener("click", () => {
 			if (typeof window !== "undefined") {
 				window.dispatchEvent(
 					new CustomEvent("switch-spot-comment", {
-						detail: { spot },
+						detail: { spot: latestSpot, scrollToComments: false },
 					}),
 				);
 			}
@@ -232,17 +263,17 @@ function initCluster(AMap: any): void {
 			context.marker.setContent(dom);
 			context.marker.setOffset(new AMap.Pixel(offset[0], offset[1]));
 
-			// 为单个点位 DOM 绑定点击事件，确保 100% 触发弹窗
+			// 为单个点位 DOM 绑定点击事件，确保 100% 触发弹窗并立马联动切换评论
 			dom.onclick = (e: MouseEvent) => {
 				e.stopPropagation();
-				openSpotInfoWindow(spot, context.marker.getPosition());
+				handleSpotClick(spot, context.marker.getPosition());
 			};
 
 			// 为单个 AMap.Marker 对象绑定点击监听
 			context.marker.setExtData(spot);
 			context.marker.off("click");
 			context.marker.on("click", () => {
-				openSpotInfoWindow(spot, context.marker.getPosition());
+				handleSpotClick(spot, context.marker.getPosition());
 			});
 		},
 	});
@@ -252,7 +283,7 @@ function initCluster(AMap: any): void {
 			mapInstance.setZoomAndCenter(mapInstance.getZoom() + 2, e.lnglat);
 		} else if (e.clusterData && e.clusterData.length === 1) {
 			const spot: Spot = e.clusterData[0].data;
-			openSpotInfoWindow(spot, e.lnglat);
+			handleSpotClick(spot, e.lnglat);
 		}
 	});
 }
@@ -276,7 +307,7 @@ function initRawMarkers(AMap: any): void {
 		});
 
 		marker.on("click", () => {
-			openSpotInfoWindow(spot, marker.getPosition());
+			handleSpotClick(spot, marker.getPosition());
 		});
 
 		rawMarkers.push(marker);
@@ -356,16 +387,59 @@ $effect(() => {
 		const targetSpotId = customEvt.detail?.spotId;
 		if (!targetSpotId || !mapInstance) return;
 
-		const targetSpot = spots.find((s) => s.id === targetSpotId);
+		const targetSpot =
+			currentSpots.find((s) => s.id === targetSpotId) ||
+			spots.find((s) => s.id === targetSpotId);
 		if (targetSpot) {
 			mapInstance.setZoomAndCenter(16, [targetSpot.lon, targetSpot.lat]);
 			openSpotInfoWindow(targetSpot, [targetSpot.lon, targetSpot.lat]);
 		}
 	};
 
+	// 响应评论动态更新，刷新点位内部评分与统计
+	const handleUpdateReviews = (e: Event) => {
+		const customEvt = e as CustomEvent<{
+			spotId?: string;
+			totalCount?: number;
+			rating?: number;
+			reviews?: ReviewItem[];
+		}>;
+		if (customEvt.detail?.spotId) {
+			const { spotId, totalCount, rating, reviews = [] } = customEvt.detail;
+			const effectiveCount =
+				totalCount !== undefined ? totalCount : reviews.length;
+
+			currentSpots = currentSpots.map((s) => {
+				if (s.id === spotId) {
+					return {
+						...s,
+						rating,
+						commentCount: effectiveCount,
+					};
+				}
+				return s;
+			});
+
+			// 如果当前信息弹窗正是此点位，实时重绘弹窗中的评分和评论数
+			if (
+				activeInfoWindowSpot?.id === spotId &&
+				infoWindow &&
+				mapInstance &&
+				currentInfoWindowPosition
+			) {
+				const updated = currentSpots.find((s) => s.id === spotId);
+				if (updated) {
+					openSpotInfoWindow(updated, currentInfoWindowPosition);
+				}
+			}
+		}
+	};
+
 	window.addEventListener("select-spot-on-map", handleSelectSpot);
+	window.addEventListener("update-spot-reviews", handleUpdateReviews);
 	return () => {
 		window.removeEventListener("select-spot-on-map", handleSelectSpot);
+		window.removeEventListener("update-spot-reviews", handleUpdateReviews);
 	};
 });
 </script>

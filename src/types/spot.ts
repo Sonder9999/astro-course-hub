@@ -29,6 +29,8 @@ export interface Spot {
 	floor: string;
 	/** 评分（0-5），预留字段 */
 	rating?: number;
+	/** 实际评论总数（含未打分的普通留言） */
+	commentCount?: number;
 	/** 评论列表，预留字段 */
 	comments?: SpotComment[];
 	/** 自定义图标标识符、本地相对路径或图片 URL */

@@ -284,7 +284,7 @@ export function renderRatingHtml(rating?: number, spotId?: string): string {
 	return `
 		<div class="spot-rating-pill has-rating spot-comment-interactive" ${dataAttr} role="button" tabindex="0" title="点击查看或发表此点位评分">
 			<span class="spot-stars-group">${starsHtml}</span>
-			<span class="spot-rating-score">${rating.toFixed(1)}</span>
+			<span class="spot-rating-score">${rating.toFixed(2)}</span>
 		</div>
 	`;
 }
@@ -293,11 +293,15 @@ export function renderRatingHtml(rating?: number, spotId?: string): string {
  * 渲染单点评论徽章 HTML 结构（支持点击切换点位专属评价）
  */
 export function renderCommentHtml(
-	comments?: SpotComment[],
+	commentsOrCount?: SpotComment[] | number,
 	spotId?: string,
 ): string {
 	const dataAttr = spotId ? `data-spot-id="${escapeHtml(spotId)}"` : "";
-	const count = comments?.length ?? 0;
+	const count =
+		typeof commentsOrCount === "number"
+			? commentsOrCount
+			: (commentsOrCount?.length ?? 0);
+
 	if (count > 0) {
 		return `
 			<div class="spot-comment-pill has-comments spot-comment-interactive" ${dataAttr} role="button" tabindex="0" title="点击查看或发表此点位评价 (已有 ${count} 条评价)">
@@ -332,7 +336,11 @@ export function buildInfoWindowHtml(
 	const safeName = escapeHtml(spot.name);
 	const safeAddress = escapeHtml(spot.address);
 	const ratingHtml = renderRatingHtml(spot.rating, spot.id);
-	const commentHtml = renderCommentHtml(spot.comments, spot.id);
+	const count =
+		spot.commentCount !== undefined
+			? spot.commentCount
+			: (spot.comments?.length ?? 0);
+	const commentHtml = renderCommentHtml(count, spot.id);
 
 	return `
 		<div class="spot-info-window">

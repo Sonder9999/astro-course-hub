@@ -4,6 +4,11 @@ import ReviewsMarquee from "@/components/common/ReviewsMarquee.svelte";
 import { profileConfig } from "@/config/profileConfig";
 import type { ReviewItem, SpotContactConfig } from "@/types/review";
 import type { Spot } from "@/types/spot";
+import {
+	analyzeGiscusComments,
+	fetchGiscusDiscussionData,
+} from "@/utils/giscus-parser";
+import SpotReviewHelper from "./SpotReviewHelper.svelte";
 
 interface Props {
 	/** 默认页面路径，例如 "/map/" */
@@ -47,10 +52,40 @@ const {
 let sectionElement: HTMLDivElement | undefined = $state(undefined);
 let activeSpot: Spot | null = $state(null);
 let currentThemeUrl: string = $state("light");
+let giscusReviews: ReviewItem[] = $state([]);
+let isLoadingReviews: boolean = $state(false);
 
 const currentTerm = $derived(
 	activeSpot ? `spot:${activeSpot.id}` : defaultPath,
 );
+
+// 根据全站讨论 vs 点位专属模式精确隔离与补全口碑列表
+const displayReviews = $derived.by(() => {
+	if (!activeSpot) {
+		// 全站模式：优先展示 Giscus 真实口碑，不足 8 条以静态数据补齐
+		const combined = [...giscusReviews];
+		const existingIds = new Set(combined.map((r) => r.id));
+		for (const r of reviews) {
+			if (!existingIds.has(r.id)) {
+				combined.push(r);
+				existingIds.add(r.id);
+			}
+			if (combined.length >= 8) break;
+		}
+		return combined;
+	}
+	// 点位模式：仅展示当前点位的评价（Giscus真实评价 + 该点位的静态评价）
+	const spotStatic = reviews.filter((r) => r.spotId === activeSpot.id);
+	const combined = [...giscusReviews];
+	const existingIds = new Set(combined.map((r) => r.id));
+	for (const r of spotStatic) {
+		if (!existingIds.has(r.id)) {
+			combined.push(r);
+			existingIds.add(r.id);
+		}
+	}
+	return combined;
+});
 
 // 获取 profileConfig 中的联系链接
 const profileQqLink = profileConfig.links.find(
@@ -120,8 +155,53 @@ function postGiscusConfig(config: Record<string, string | number | boolean>) {
 	}
 }
 
-// 切换当前点位并重载对应隔离的 Discussion
-function setSpot(spot: Spot | null) {
+// 异步拉取 Giscus 官方评论并严格解析口碑
+async function loadGiscusReviews() {
+	if (!giscusConfig?.repo || !giscusConfig?.category) return;
+	const term = activeSpot ? `spot:${activeSpot.id}` : defaultPath;
+	isLoadingReviews = true;
+	try {
+		const data = await fetchGiscusDiscussionData({
+			repo: giscusConfig.repo,
+			term,
+			category: giscusConfig.category,
+			strict: "1",
+		});
+
+		const analysis = analyzeGiscusComments(
+			data.comments,
+			data.totalCommentCount,
+			{
+				spotId: activeSpot ? activeSpot.id : undefined,
+				spotName: activeSpot ? activeSpot.name : undefined,
+				tag: activeSpot ? "点位口碑" : "全站口碑",
+			},
+		);
+
+		giscusReviews = analysis.validReviews;
+
+		// 派发动态更新事件给地图：传递真实评论总数、合规评分平均值与口碑列表
+		if (typeof window !== "undefined" && activeSpot) {
+			window.dispatchEvent(
+				new CustomEvent("update-spot-reviews", {
+					detail: {
+						spotId: activeSpot.id,
+						totalCount: analysis.totalCommentCount,
+						rating: analysis.averageRating,
+						reviews: displayReviews,
+					},
+				}),
+			);
+		}
+	} catch {
+		giscusReviews = [];
+	} finally {
+		isLoadingReviews = false;
+	}
+}
+
+// 切换当前点位并重载对应隔离的 Discussion（默认不滚动/不跳转页面视野）
+function setSpot(spot: Spot | null, scrollToComments = false) {
 	activeSpot = spot;
 	const term = spot ? `spot:${spot.id}` : defaultPath;
 	postGiscusConfig({
@@ -131,7 +211,9 @@ function setSpot(spot: Spot | null) {
 		theme: resolveGiscusTheme(),
 	});
 
-	if (spot && sectionElement) {
+	loadGiscusReviews();
+
+	if (scrollToComments && spot && sectionElement) {
 		sectionElement.scrollIntoView({ behavior: "smooth", block: "start" });
 	}
 }
@@ -186,14 +268,27 @@ onMount(() => {
 	// 动态加载官方 Giscus 引擎
 	import("https://esm.sh/giscus");
 
+	loadGiscusReviews();
+
 	const handleSwitchEvent = (e: Event) => {
-		const customEvt = e as CustomEvent<{ spot: Spot }>;
+		const customEvt = e as CustomEvent<{
+			spot: Spot;
+			scrollToComments?: boolean;
+		}>;
 		if (customEvt.detail?.spot) {
-			setSpot(customEvt.detail.spot);
+			setSpot(customEvt.detail.spot, !!customEvt.detail.scrollToComments);
+		}
+	};
+
+	const handleGiscusMessage = (event: MessageEvent) => {
+		if (event.origin !== "https://giscus.app") return;
+		if (event.data?.giscus?.discussion || event.data?.giscus?.resizeHeight) {
+			loadGiscusReviews();
 		}
 	};
 
 	window.addEventListener("switch-spot-comment", handleSwitchEvent);
+	window.addEventListener("message", handleGiscusMessage);
 
 	if (typeof MutationObserver !== "undefined") {
 		themeObserver = new MutationObserver(() => {
@@ -207,6 +302,7 @@ onMount(() => {
 
 	return () => {
 		window.removeEventListener("switch-spot-comment", handleSwitchEvent);
+		window.removeEventListener("message", handleGiscusMessage);
 		if (themeObserver) themeObserver.disconnect();
 	};
 });
@@ -217,26 +313,35 @@ onDestroy(() => {
 </script>
 
 <div class="spot-comment-flow w-full">
-	<!-- 顶部精选口碑双向跑马灯卡片 -->
-	{#if reviews.length > 0}
+	<!-- 顶部精选口碑双向跑马灯卡片（点位与全站各自展示对应数据） -->
+	{#if displayReviews.length > 0}
 		<div class="marquee-card card-base p-3.5 sm:p-5 md:p-6 mb-4">
 			<div class="flex items-center justify-between mb-3 px-1">
 				<div class="flex items-center gap-2">
 					<span class="w-1.5 h-4 bg-(--primary) rounded-full"></span>
 					<span class="text-sm font-semibold text-(--deep-text)">
-						校园点位精选口碑
+						{activeSpot ? `${activeSpot.name} 口碑评价` : "校园点位精选口碑"}
 					</span>
+					{#if activeSpot}
+						<span class="text-[11px] px-1.5 py-0.5 rounded bg-(--primary)/10 text-(--primary) font-medium">
+							共 {displayReviews.length} 条评价
+						</span>
+					{/if}
 				</div>
 				<span class="text-xs text-(--content-meta) opacity-80 hidden sm:inline">
-					支持左右滑动与悬浮暂停，点击卡片可联动定位
+					{activeSpot ? "点位专属口碑，来自真实评价" : "支持左右滑动与悬浮暂停，点击卡片可联动定位"}
 				</span>
 			</div>
 			<ReviewsMarquee
-				{reviews}
-				twoWay={true}
+				reviews={displayReviews}
+				twoWay={displayReviews.length >= 2}
 				speed={40}
 				onSelectReview={handleSelectReview}
 			/>
+		</div>
+	{:else if activeSpot}
+		<div class="card-base p-4 sm:p-5 mb-4 text-center text-xs text-(--content-meta) border border-(--line-divider)">
+			<span>该点位暂无口碑评价，欢迎在下方发表第一条带评分的评价</span>
 		</div>
 	{/if}
 
@@ -363,6 +468,15 @@ onDestroy(() => {
 				</p>
 			{/if}
 		</div>
+
+		<!-- 点位专属打分与评价模板助手（全站模式不显示，点位模式显示） -->
+		{#if activeSpot}
+			<SpotReviewHelper
+				spot={activeSpot}
+				repo={giscusConfig.repo}
+				category={giscusConfig.category}
+			/>
+		{/if}
 
 		<!-- Giscus 挂载区 -->
 		<div class="relative z-10 pl-1 pr-1 min-h-[220px]">

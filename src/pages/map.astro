@@ -18,8 +18,15 @@ if (!siteConfig.pages.map) {
 	return Astro.redirect("/404/");
 }
 
-const spots: Spot[] = spotsRaw as Spot[];
+const rawSpots: Spot[] = spotsRaw as Spot[];
 const spotReviews: ReviewItem[] = spotReviewsRaw as ReviewItem[];
+// 点位初始评分与条数不以静态模板数据充数，完全由真实评论驱动
+const spots: Spot[] = rawSpots.map((s) => ({
+	...s,
+	rating: undefined,
+	commentCount: 0,
+	comments: [],
+}));
 
 // 环境变量：高德地图 API Key
 const amapKey = import.meta.env.PUBLIC_AMAP_KEY ?? "";
