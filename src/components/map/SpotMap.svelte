@@ -125,6 +125,19 @@ function openSpotInfoWindow(spot: Spot, position: any): void {
 		infoWindow.close();
 	});
 
+	// 点击评分或评价徽章，派发事件切换至点位专属评价区
+	container.querySelectorAll(".spot-comment-interactive").forEach((el) => {
+		el.addEventListener("click", () => {
+			if (typeof window !== "undefined") {
+				window.dispatchEvent(
+					new CustomEvent("switch-spot-comment", {
+						detail: { spot },
+					}),
+				);
+			}
+		});
+	});
+
 	infoWindow.setContent(container);
 	infoWindow.open(mapInstance, position);
 }
@@ -331,6 +344,28 @@ $effect(() => {
 			mapInstance = null;
 			mapLoaded = false;
 		}
+	};
+});
+
+// 响应外部（如精选评价跑马灯卡片）联动聚焦地图点位事件
+$effect(() => {
+	if (typeof window === "undefined") return;
+
+	const handleSelectSpot = (e: Event) => {
+		const customEvt = e as CustomEvent<{ spotId: string }>;
+		const targetSpotId = customEvt.detail?.spotId;
+		if (!targetSpotId || !mapInstance) return;
+
+		const targetSpot = spots.find((s) => s.id === targetSpotId);
+		if (targetSpot) {
+			mapInstance.setZoomAndCenter(16, [targetSpot.lon, targetSpot.lat]);
+			openSpotInfoWindow(targetSpot, [targetSpot.lon, targetSpot.lat]);
+		}
+	};
+
+	window.addEventListener("select-spot-on-map", handleSelectSpot);
+	return () => {
+		window.removeEventListener("select-spot-on-map", handleSelectSpot);
 	};
 });
 </script>
@@ -923,5 +958,24 @@ $effect(() => {
 	}
 	:global(.spot-comment-pill.is-empty) {
 		opacity: 0.65;
+	}
+
+	/* 点位评论与评分交互态：保持原貌同时具备微交互悬停感 */
+	:global(.spot-comment-interactive) {
+		cursor: pointer;
+		user-select: none;
+		transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+		border-radius: 6px;
+		padding: 2px 5px;
+		margin: -2px -5px;
+	}
+	:global(.spot-comment-interactive:hover) {
+		color: var(--primary, #3b82f6) !important;
+		opacity: 1 !important;
+		background: rgba(14, 165, 233, 0.1);
+	}
+	:global(.spot-comment-interactive:focus-visible) {
+		outline: 2px solid var(--primary, #3b82f6);
+		outline-offset: 1px;
 	}
 </style>

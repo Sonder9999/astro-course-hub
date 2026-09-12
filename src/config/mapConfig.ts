@@ -1,3 +1,4 @@
+import type { SpotContactConfig } from "@/types/review";
 import type { SpotIndustry } from "@/types/spot";
 
 export interface CategoryMeta {
@@ -94,6 +95,8 @@ export interface MapConfig {
 	cluster: MapClusterConfig;
 	/** 分类配置：标签名称与标记颜色 */
 	categories: Record<SpotIndustry, CategoryMeta>;
+	/** 点位线下/备用投稿渠道配置（适用于无 GitHub 账号用户投稿反馈） */
+	spotContact?: SpotContactConfig;
 }
 
 export const mapConfig: MapConfig = {
@@ -144,5 +147,13 @@ export const mapConfig: MapConfig = {
 		},
 		residential: { label: "住宅小区", color: "#f59e0b" },
 		other: { label: "其他", color: "#6b7280" },
+	},
+	// 备用投稿渠道：邮箱 / QQ等
+	spotContact: {
+		enable: true,
+		email: "admin@henu.edu.cn",
+		qq: "12345678",
+		noticeText:
+			"没有 GitHub 账号？欢迎通过邮件或 QQ 将点位评价与修正意见发送给管理员代为收录。",
 	},
 };

@@ -1,12 +1,15 @@
 ---
 import Comment from "@components/comment/index.astro";
+import SpotCommentSection from "@components/map/SpotCommentSection.svelte";
 import SpotMap from "@components/map/SpotMap.svelte";
 import { Icon } from "astro-icon/components";
 import { commentConfig, mapConfig, siteConfig } from "@/config";
+import spotReviewsRaw from "@/data/spot-reviews.json";
 import spotsRaw from "@/data/spots.json";
 import I18nKey from "@/i18n/i18nKey";
 import { i18n } from "@/i18n/translation";
 import MainGridLayout from "@/layouts/MainGridLayout.astro";
+import type { ReviewItem } from "@/types/review";
 import type { Spot } from "@/types/spot";
 
 // 检查页面是否启用
@@ -15,6 +18,7 @@ if (!siteConfig.pages.map) {
 }
 
 const spots: Spot[] = spotsRaw as Spot[];
+const spotReviews: ReviewItem[] = spotReviewsRaw as ReviewItem[];
 
 // 环境变量：高德地图 API Key
 const amapKey = import.meta.env.PUBLIC_AMAP_KEY ?? "";
@@ -22,6 +26,7 @@ const amapSecurityKey = import.meta.env.PUBLIC_AMAP_SECURITY_KEY ?? "";
 
 // 检查评论系统是否启用
 const isCommentEnabled = commentConfig?.type && commentConfig.type !== "none";
+const isGiscus = commentConfig?.type === "giscus" && commentConfig.giscus;
 
 // 页面信息
 const title = "校园点位地图";
@@ -69,7 +74,16 @@ const description =
 
   <!-- 评论/留言区 -->
   <div class="mt-4">
-    {isCommentEnabled ? (
+    {isGiscus ? (
+      <SpotCommentSection
+        client:load
+        defaultPath="/map/"
+        giscusConfig={commentConfig.giscus!}
+        reviews={spotReviews}
+        spots={spots}
+        contactConfig={mapConfig.spotContact}
+      />
+    ) : isCommentEnabled ? (
       <Comment customPath="/map/" />
     ) : (
       <div class="card-base p-8 mb-6 relative overflow-hidden">

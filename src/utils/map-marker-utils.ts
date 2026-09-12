@@ -258,10 +258,11 @@ export function buildNavUrl(spot: Spot): string {
 /**
  * 渲染评分 HTML 结构（支持预留字段）
  */
-export function renderRatingHtml(rating?: number): string {
+export function renderRatingHtml(rating?: number, spotId?: string): string {
+	const dataAttr = spotId ? `data-spot-id="${escapeHtml(spotId)}"` : "";
 	if (rating === undefined || rating === null || rating <= 0) {
 		return `
-			<div class="spot-rating-pill is-empty" title="该点位暂无评分（预留）">
+			<div class="spot-rating-pill is-empty spot-comment-interactive" ${dataAttr} role="button" tabindex="0" title="点击查看或发表此点位评分">
 				<span class="spot-star-icon empty">&#9734;</span>
 				<span class="spot-rating-label">暂无评分</span>
 			</div>
@@ -281,7 +282,7 @@ export function renderRatingHtml(rating?: number): string {
 		starsHtml += '<span class="spot-star-icon empty">&#9734;</span>';
 	}
 	return `
-		<div class="spot-rating-pill has-rating">
+		<div class="spot-rating-pill has-rating spot-comment-interactive" ${dataAttr} role="button" tabindex="0" title="点击查看或发表此点位评分">
 			<span class="spot-stars-group">${starsHtml}</span>
 			<span class="spot-rating-score">${rating.toFixed(1)}</span>
 		</div>
@@ -289,13 +290,17 @@ export function renderRatingHtml(rating?: number): string {
 }
 
 /**
- * 渲染单点评论徽章 HTML 结构（预留字段，各点位独立系统）
+ * 渲染单点评论徽章 HTML 结构（支持点击切换点位专属评价）
  */
-export function renderCommentHtml(comments?: SpotComment[]): string {
+export function renderCommentHtml(
+	comments?: SpotComment[],
+	spotId?: string,
+): string {
+	const dataAttr = spotId ? `data-spot-id="${escapeHtml(spotId)}"` : "";
 	const count = comments?.length ?? 0;
 	if (count > 0) {
 		return `
-			<div class="spot-comment-pill has-comments" title="已有 ${count} 条点位评价">
+			<div class="spot-comment-pill has-comments spot-comment-interactive" ${dataAttr} role="button" tabindex="0" title="点击查看或发表此点位评价 (已有 ${count} 条评价)">
 				<svg class="spot-pill-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
 					<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
 				</svg>
@@ -304,7 +309,7 @@ export function renderCommentHtml(comments?: SpotComment[]): string {
 		`;
 	}
 	return `
-		<div class="spot-comment-pill is-empty" title="每个点位独立评价系统（预留）">
+		<div class="spot-comment-pill is-empty spot-comment-interactive" ${dataAttr} role="button" tabindex="0" title="点击查看或发表此点位评价">
 			<svg class="spot-pill-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
 				<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
 			</svg>
@@ -326,8 +331,8 @@ export function buildInfoWindowHtml(
 		: "";
 	const safeName = escapeHtml(spot.name);
 	const safeAddress = escapeHtml(spot.address);
-	const ratingHtml = renderRatingHtml(spot.rating);
-	const commentHtml = renderCommentHtml(spot.comments);
+	const ratingHtml = renderRatingHtml(spot.rating, spot.id);
+	const commentHtml = renderCommentHtml(spot.comments, spot.id);
 
 	return `
 		<div class="spot-info-window">
