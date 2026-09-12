@@ -311,7 +311,7 @@ onDestroy(() => {
 
 	<!-- 第二排：向右滚动 -->
 	{#if twoWay && row2Items.length > 0}
-		<div class="marquee-container mt-3" bind:this={container2}>
+		<div class="marquee-container mt-4 sm:mt-5" bind:this={container2}>
 			<div class="marquee-content" bind:this={content2}>
 				{#each [...row2Items, ...row2Items] as item, i (item.id + '-r2-' + i)}
 					<!-- svelte-ignore a11y_click_events_have_key_events -->
@@ -384,6 +384,8 @@ onDestroy(() => {
 	position: relative;
 	cursor: grab;
 	user-select: none;
+	padding-top: 6px;
+	padding-bottom: 6px;
 	-webkit-mask-image: linear-gradient(
 		to right,
 		transparent 0%,
@@ -413,6 +415,7 @@ onDestroy(() => {
 }
 
 .review-card {
+	position: relative;
 	width: 340px;
 	min-height: 155px;
 	padding: 18px 20px;
@@ -433,8 +436,14 @@ onDestroy(() => {
 }
 
 .review-card:hover {
-	transform: translateY(-3px);
-	box-shadow: 0 10px 24px rgba(0, 0, 0, 0.07);
+	z-index: 10;
+	transform: translateY(-4px);
+	box-shadow: 0 12px 28px rgba(0, 0, 0, 0.08);
+	border-color: var(--primary);
+}
+
+:global(:root.dark) .review-card:hover {
+	box-shadow: 0 12px 28px rgba(0, 0, 0, 0.4);
 	border-color: var(--primary);
 }
 
@@ -488,6 +497,10 @@ onDestroy(() => {
 	font-weight: 600;
 	color: var(--deep-text);
 	line-height: 1.2;
+}
+
+:global(:root.dark) .review-author {
+	color: rgb(255 255 255 / 92%);
 }
 
 .review-tag {
