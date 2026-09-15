@@ -38,6 +38,13 @@ function resolveCourseCover(course: CourseListItem): string {
 	return getCourseCover(course.id, refreshSeed);
 }
 
+function resolveNodeCover(nodeId: string, customImage?: string): string {
+	if (customImage && !customImage.includes("t.alcy.cc")) {
+		return customImage;
+	}
+	return getCourseCover(nodeId, refreshSeed);
+}
+
 interface Diagnostics {
 	totalFormulas: number;
 	inlineMathCount: number;
@@ -434,39 +441,15 @@ const collegeCarouselCards = $derived.by<CarouselCardItem[]>(() => {
 			return matchName || matchDesc || matchMajors;
 		})
 		.map((col) => {
-			const colMajors = getMajorsByCollege(col.id);
 			return {
 				id: col.id,
 				name: col.name,
-				enName: col.shortName,
+				enName: col.shortName || "",
 				subTitle: col.description,
 				themeColor: col.color || "#3b82f6",
 				image: col.image || getCourseCover(col.id, refreshSeed),
-				badge: col.badge || `${colMajors.length}个专业`,
-				children:
-					colMajors.length > 0
-						? colMajors.map((m) => {
-								const count = courses.filter((c) => {
-									const cM = normalizeMajors(c.major);
-									return cM.includes(m.id) || cM.includes(m.name);
-								}).length;
-								return {
-									id: m.id,
-									name: m.name,
-									category: "培养专业",
-									description: `${m.description || ""} · 包含 ${count} 门核心课程`,
-									image: getCourseCover(m.id, refreshSeed),
-								};
-							})
-						: [
-								{
-									id: col.id,
-									name: `${col.name} 核心知识库`,
-									category: "专项认证",
-									description: col.description,
-									image: getCourseCover(col.id, refreshSeed),
-								},
-							],
+				badge: col.badge || "",
+				actionLabel: col.id === "toefl" ? "开始备考 →" : "进入学院 →",
 			};
 		});
 });
@@ -485,25 +468,15 @@ const majorCarouselCards = $derived.by<CarouselCardItem[]>(() => {
 			);
 		})
 		.map((m) => {
-			const majorCourses = courses.filter((c) => {
-				const cM = normalizeMajors(c.major);
-				return cM.includes(m.id) || cM.includes(m.name);
-			});
 			return {
 				id: m.id,
 				name: m.name,
-				enName: m.shortName,
+				enName: m.shortName || "",
 				subTitle: m.description,
 				themeColor: m.color || "#3b82f6",
 				image: m.image || getCourseCover(m.id, refreshSeed),
-				badge: `${majorCourses.length}门课程`,
-				children: majorCourses.slice(0, 4).map((c) => ({
-					id: c.id,
-					name: c.title,
-					category: c.category,
-					description: `${c.semester} · ${c.description}`,
-					image: resolveCourseCover(c),
-				})),
+				badge: m.badge || "",
+				actionLabel: "进入专业课程 →",
 			};
 		});
 });
@@ -999,36 +972,14 @@ onMount(() => {
 						<svg class="w-3.5 h-3.5 text-(--primary) shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
 						</svg>
-						<span>横向旋转选择学院 · 点击进入专业方向</span>
-					</div>
-					<div class="hidden sm:flex items-center gap-1 bg-black/5 dark:bg-white/5 p-1 rounded-xl border border-black/5 dark:border-white/10 shrink-0">
-						<button
-							class="px-2.5 py-1 rounded-lg text-xs font-medium transition-colors cursor-pointer {accordionMode === 'continuous' ? 'bg-white dark:bg-neutral-800 text-(--primary) shadow-xs' : 'text-black/50 dark:text-white/50 hover:text-black dark:hover:text-white'}"
-							onclick={() => (accordionMode = "continuous")}
-						>
-							连续无缝
-						</button>
-						<button
-							class="px-2.5 py-1 rounded-lg text-xs font-medium transition-colors cursor-pointer {accordionMode === 'independent' ? 'bg-white dark:bg-neutral-800 text-(--primary) shadow-xs' : 'text-black/50 dark:text-white/50 hover:text-black dark:hover:text-white'}"
-							onclick={() => (accordionMode = "independent")}
-						>
-							独立卡片
-						</button>
+						<span>横向旋转选择学院 · 点击卡片进入下属专业</span>
 					</div>
 				</div>
 
 				<Carousel3D
 					cards={collegeCarouselCards}
 					cardActionLabel="进入学院 →"
-					{accordionMode}
 					onSelectCard={(c) => selectCollege(c.id)}
-					onSelectCardItem={(item, card) => {
-						if (card.id === "toefl") {
-							selectCollege("toefl");
-						} else {
-							selectMajor(item.id);
-						}
-					}}
 				/>
 			</div>
 
@@ -1043,25 +994,40 @@ onMount(() => {
 						tabindex="0"
 						onkeydown={(e) => { if (e.key === 'Enter') selectCollege(col.id); }}
 					>
-						<!-- 背景光晕 -->
-						<div
-							class="absolute -right-8 -bottom-8 w-32 h-32 rounded-full pointer-events-none transition-all duration-500 group-hover:scale-125 opacity-10"
-							style="background: {col.color || '#3b82f6'};"
-						></div>
+						<div class="absolute -right-6 -bottom-6 w-24 h-24 rounded-full bg-(--primary)/5 pointer-events-none transition-all group-hover:scale-150"></div>
+
+						{#if resolveNodeCover(col.id, col.image)}
+							<div class="absolute right-0 top-0 bottom-0 w-36 sm:w-44 pointer-events-none overflow-hidden opacity-15 dark:opacity-25 transition-opacity group-hover:opacity-30">
+								<img
+									src={resolveNodeCover(col.id, col.image)}
+									alt={col.name}
+									class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+									loading="lazy"
+									onerror={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+								/>
+								<!-- 线性渐变遮罩：让图片左侧与卡片底色自然淡化融合 -->
+								<div class="absolute inset-0 bg-gradient-to-r from-[var(--card-bg,#fff)] dark:from-[var(--card-bg,#1a1b26)] via-transparent to-transparent"></div>
+							</div>
+						{/if}
 
 						<div class="flex flex-col gap-3 relative z-10">
-							<!-- 顶部微标行 -->
-							<div class="flex items-center justify-between gap-2">
-								<span
-									class="px-2.5 py-1 rounded-lg text-xs font-semibold shrink-0"
-									style="background: {col.color ? `${col.color}20` : 'rgba(59,130,246,0.15)'}; color: {col.color || '#3b82f6'};"
-								>
-									{col.badge || (col.id === 'toefl' ? '语言认证' : '培养学院')}
-								</span>
-								<span class="text-xs text-black/45 dark:text-white/45 font-mono">
-									{col.shortName}
-								</span>
-							</div>
+							{#if col.badge || col.shortName}
+								<div class="flex items-center justify-between gap-2">
+									{#if col.badge}
+										<span
+											class="px-2.5 py-1 rounded-lg text-xs font-semibold shrink-0"
+											style="background: {col.color ? `${col.color}20` : 'rgba(59,130,246,0.15)'}; color: {col.color || '#3b82f6'};"
+										>
+											{col.badge}
+										</span>
+									{/if}
+									{#if col.shortName}
+										<span class="text-xs text-black/45 dark:text-white/45 font-mono">
+											{col.shortName}
+										</span>
+									{/if}
+								</div>
+							{/if}
 
 							<!-- 学院名与简介 -->
 							<div>
@@ -1075,21 +1041,6 @@ onMount(() => {
 									<p class="text-xs sm:text-sm text-black/60 dark:text-white/60 mt-2 line-clamp-2 leading-relaxed">
 										{col.description}
 									</p>
-								{/if}
-							</div>
-
-							<!-- 专业标签胶囊 -->
-							<div class="flex flex-wrap gap-1.5 pt-1">
-								{#if col.id === 'toefl'}
-									<span class="text-xs px-2.5 py-1 rounded-md bg-black/5 dark:bg-white/5 text-black/70 dark:text-white/70 border border-black/5 dark:border-white/10">
-										独立语言认证 · 全真模考与题型精解
-									</span>
-								{:else}
-									{#each getMajorsByCollege(col.id) as m}
-										<span class="text-xs px-2.5 py-1 rounded-md bg-black/5 dark:bg-white/5 text-black/70 dark:text-white/70 border border-black/5 dark:border-white/10 font-medium">
-											{m.name}
-										</span>
-									{/each}
 								{/if}
 							</div>
 						</div>
@@ -1124,12 +1075,14 @@ onMount(() => {
 									<span class="font-bold text-base text-black/90 dark:text-white/90 group-hover:text-(--primary) transition-colors">
 										{col.name}
 									</span>
-									<span
-										class="text-xs px-2 py-0.5 rounded-md font-semibold"
-										style="background: {col.color ? `${col.color}20` : 'rgba(59,130,246,0.15)'}; color: {col.color || '#3b82f6'};"
-									>
-										{col.badge || col.shortName}
-									</span>
+									{#if col.badge}
+										<span
+											class="text-xs px-2 py-0.5 rounded-md font-semibold"
+											style="background: {col.color ? `${col.color}20` : 'rgba(59,130,246,0.15)'}; color: {col.color || '#3b82f6'};"
+										>
+											{col.badge}
+										</span>
+									{/if}
 									<span class="text-xs text-black/50 dark:text-white/50">
 										{getCollegeCourseCount(col.id)} 门核心课程
 									</span>
@@ -1185,34 +1138,14 @@ onMount(() => {
 						<svg class="w-3.5 h-3.5 text-(--primary) shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
 						</svg>
-						<span>选择培养专业 · 点击浏览该专业专属课程体系</span>
-					</div>
-					<div class="hidden sm:flex items-center gap-1 bg-black/5 dark:bg-white/5 p-1 rounded-xl border border-black/5 dark:border-white/10 shrink-0">
-						<button
-							class="px-2.5 py-1 rounded-lg text-xs font-medium transition-colors cursor-pointer {accordionMode === 'continuous' ? 'bg-white dark:bg-neutral-800 text-(--primary) shadow-xs' : 'text-black/50 dark:text-white/50 hover:text-black dark:hover:text-white'}"
-							onclick={() => (accordionMode = "continuous")}
-						>
-							连续无缝
-						</button>
-						<button
-							class="px-2.5 py-1 rounded-lg text-xs font-medium transition-colors cursor-pointer {accordionMode === 'independent' ? 'bg-white dark:bg-neutral-800 text-(--primary) shadow-xs' : 'text-black/50 dark:text-white/50 hover:text-black dark:hover:text-white'}"
-							onclick={() => (accordionMode = "independent")}
-						>
-							独立卡片
-						</button>
+						<span>横向旋转选择专业 · 点击卡片进入专业课程体系</span>
 					</div>
 				</div>
 
 				<Carousel3D
 					cards={majorCarouselCards}
 					cardActionLabel="进入专业课程 →"
-					{accordionMode}
 					onSelectCard={(c) => selectMajor(c.id)}
-					onSelectCardItem={(item, card) => {
-						selectMajor(card.id);
-						const found = courses.find((c) => c.id === item.id);
-						if (found) handleCourseCardClick(found);
-					}}
 				/>
 			</div>
 
@@ -1227,10 +1160,21 @@ onMount(() => {
 						tabindex="0"
 						onkeydown={(e) => { if (e.key === 'Enter') selectMajor(m.id); }}
 					>
-						<div
-							class="absolute -right-8 -bottom-8 w-32 h-32 rounded-full pointer-events-none transition-all duration-500 group-hover:scale-125 opacity-10"
-							style="background: {m.color || '#3b82f6'};"
-						></div>
+						<div class="absolute -right-6 -bottom-6 w-24 h-24 rounded-full bg-(--primary)/5 pointer-events-none transition-all group-hover:scale-150"></div>
+
+						{#if resolveNodeCover(m.id, m.image)}
+							<div class="absolute right-0 top-0 bottom-0 w-36 sm:w-44 pointer-events-none overflow-hidden opacity-15 dark:opacity-25 transition-opacity group-hover:opacity-30">
+								<img
+									src={resolveNodeCover(m.id, m.image)}
+									alt={m.name}
+									class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+									loading="lazy"
+									onerror={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+								/>
+								<!-- 线性渐变遮罩：让图片左侧与卡片底色自然淡化融合 -->
+								<div class="absolute inset-0 bg-gradient-to-r from-[var(--card-bg,#fff)] dark:from-[var(--card-bg,#1a1b26)] via-transparent to-transparent"></div>
+							</div>
+						{/if}
 
 						<div class="flex flex-col gap-3 relative z-10">
 							<div class="flex items-center justify-between gap-2">
@@ -1239,9 +1183,6 @@ onMount(() => {
 									style="background: {m.color ? `${m.color}20` : 'rgba(59,130,246,0.15)'}; color: {m.color || '#3b82f6'};"
 								>
 									{getMajorCourseCount(m.id)} 门培养课程
-								</span>
-								<span class="text-xs text-black/45 dark:text-white/45 font-mono">
-									{m.shortName}
 								</span>
 							</div>
 
@@ -1257,15 +1198,6 @@ onMount(() => {
 										{m.description}
 									</p>
 								{/if}
-							</div>
-
-							<!-- 核心课程预览标签 -->
-							<div class="flex flex-wrap gap-1.5 pt-1">
-								{#each getMajorCourses(m.id).slice(0, 4) as c}
-									<span class="text-xs px-2.5 py-1 rounded-md bg-black/5 dark:bg-white/5 text-black/70 dark:text-white/70 border border-black/5 dark:border-white/10 font-medium">
-										{c.title}
-									</span>
-								{/each}
 							</div>
 						</div>
 
@@ -1303,9 +1235,6 @@ onMount(() => {
 										style="background: {m.color ? `${m.color}20` : 'rgba(59,130,246,0.15)'}; color: {m.color || '#3b82f6'};"
 									>
 										{getMajorCourseCount(m.id)} 门课程
-									</span>
-									<span class="text-xs text-black/50 dark:text-white/50">
-										{m.shortName}
 									</span>
 								</div>
 								{#if m.description}

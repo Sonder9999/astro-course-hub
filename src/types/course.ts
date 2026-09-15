@@ -79,6 +79,7 @@ export interface CarouselCardItem {
 	themeColor: string; // 主题颜色
 	image?: string; // 卡片壁纸
 	badge?: string; // 徽标角标 (如 "12门课程")
+	actionLabel?: string; // 卡片独立操作按钮文案 (如 "进入学院 →"、"开始备考 →")
 	url?: string; // 点击跳转路径
 	children?: Array<{
 		id: string;

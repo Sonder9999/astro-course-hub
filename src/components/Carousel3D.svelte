@@ -556,7 +556,7 @@ onDestroy(() => {
             {:else}
               <!-- 独立整卡展示 (无子项或单实体卡片) -->
               <div
-                class="accordion-card continuous-item active"
+                class="accordion-card continuous-item single-card active"
                 role="button"
                 tabindex="0"
                 onclick={(e) => {
@@ -580,12 +580,12 @@ onDestroy(() => {
                 </div>
                 <div class="continuous-overlay">
                   <div class="overlay-bottom">
-                    <h3 class="subject-name text-lg font-bold">{card.name}</h3>
+                    <h3 class="subject-name text-xl font-bold">{card.name}</h3>
                     {#if card.subTitle}
                       <p class="subject-desc">{card.subTitle}</p>
                     {/if}
                     <div class="enter-btn">
-                      {cardActionLabel}
+                      {card.actionLabel || cardActionLabel}
                     </div>
                   </div>
                 </div>

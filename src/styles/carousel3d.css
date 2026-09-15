@@ -333,6 +333,23 @@
   transform: translateY(0);
 }
 
+/* 单实体卡片（学院轮盘、专业轮盘）：激活前方卡片常态展示清晰文案与操作按钮 */
+.semester-card-item.active .single-card .subject-desc {
+  max-height: 80px;
+  opacity: 0.92;
+  font-size: 13px;
+}
+
+.semester-card-item.active .single-card .enter-btn {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.semester-card-item.active .single-card:hover .enter-btn {
+  transform: translateY(-2px);
+  color: #ffffff;
+}
+
 /* ================= 底部控制器 ================= */
 .control-bar-wrapper {
   width: 100%;
@@ -349,6 +366,7 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
+  max-width: min(100%, 780px);
   background: color-mix(in srgb, var(--card-bg) 85%, transparent);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
@@ -397,6 +415,13 @@
   align-items: center;
   gap: 6px;
   margin: 0 4px;
+  overflow-x: auto;
+  max-width: 100%;
+  scrollbar-width: none;
+}
+
+.dots-container::-webkit-scrollbar {
+  display: none;
 }
 
 .dot {
