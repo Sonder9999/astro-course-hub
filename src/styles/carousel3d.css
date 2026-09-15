@@ -38,7 +38,7 @@
   will-change: transform;
 }
 
-/* 学期外框卡片 */
+/* 学期外框卡片：保持 opacity: 1 避免 3D 上下文 (preserve-3d) 发生扁平化销毁与重构 */
 .semester-card-item {
   position: absolute;
   width: var(--card-width);
@@ -48,12 +48,15 @@
   border-radius: 20px;
   background: #0f172a;
   border: 1px solid rgba(255, 255, 255, 0.16);
-  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.7);
+  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.65);
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
   overflow: visible;
-  transition: opacity 0.4s ease, filter 0.4s ease, box-shadow 0.4s ease, border-color 0.4s ease;
+  opacity: 1;
+  transform-style: preserve-3d;
+  contain: layout style;
+  transition: border-color 0.35s ease;
 }
 
 .semester-card-item.continuous {
@@ -62,32 +65,42 @@
 
 .semester-card-item.independent {
   padding: 16px;
-  background: rgba(15, 23, 42, 0.85);
-  backdrop-filter: blur(12px);
+  background: #0f172a;
 }
 
-/* 处于正前方的激活学期：边框与光影随 Firefly 主题色动态变色 */
+/* 处于正前方的激活学期：边框动态高亮 (无需 z-index，3D 深度天然决定前后层叠) */
 .semester-card-item.active {
-  opacity: 1;
-  filter: none;
-  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.6), 0 0 0 2px var(--primary);
-  border-color: color-mix(in srgb, var(--primary) 70%, transparent);
-  z-index: 10;
+  border-color: color-mix(in srgb, var(--primary) 80%, transparent);
   cursor: default;
   pointer-events: auto;
 }
 
-/* 侧面与背面的未激活学期：半透明、景深虚化、点击可直接转正 */
+/* 侧面与背面的未激活学期：保持 pointer-events 允许点击切换 */
 .semester-card-item.inactive {
-  opacity: 0.35;
-  filter: brightness(0.6) blur(1.5px);
+  border-color: rgba(255, 255, 255, 0.12);
   cursor: pointer;
   pointer-events: auto;
 }
 
-.semester-card-item.inactive:hover {
-  opacity: 0.6;
-  filter: brightness(0.8) blur(0.5px);
+/* 核心优化：利用叶子伪元素进行暗化遮罩，绝不在 3D 容器上使用 opacity < 1，保障 preserve-3d 绝对不扁平化 */
+.semester-card-item::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: rgba(2, 6, 23, 0.65);
+  pointer-events: none;
+  transition: opacity 0.35s ease;
+  opacity: 1;
+  z-index: 5;
+}
+
+.semester-card-item.active::after {
+  opacity: 0;
+}
+
+.semester-card-item.inactive:hover::after {
+  opacity: 0.35;
 }
 
 /* ================= 内嵌手风琴主体 ================= */
@@ -130,6 +143,9 @@
   width: 180%;
   height: 100%;
   object-fit: cover;
+  transform: translateZ(0);
+  will-change: transform;
+  backface-visibility: hidden;
   transition: width 0.5s ease;
   pointer-events: none;
   -webkit-user-drag: none;
@@ -218,7 +234,9 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transform: scale(1.06);
+  transform: scale(1.06) translateZ(0);
+  will-change: transform;
+  backface-visibility: hidden;
   transition: transform 0.6s ease;
   pointer-events: none;
   -webkit-user-drag: none;
@@ -389,18 +407,17 @@
   color: var(--btn-content);
   background: color-mix(in srgb, var(--btn-content) 6%, transparent);
   cursor: pointer;
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: background-color 0.25s ease, color 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .dot:hover {
   color: var(--primary);
   background: color-mix(in srgb, var(--primary) 12%, transparent);
   border-color: color-mix(in srgb, var(--primary) 25%, transparent);
-  transform: translateY(-1px);
 }
 
 .dot.active {
@@ -408,13 +425,12 @@
   color: #ffffff;
   border-color: transparent;
   box-shadow: 0 3px 12px color-mix(in srgb, var(--primary) 40%, transparent);
-  transform: translateY(-1px);
   font-weight: 600;
 }
 
 .dot-text {
   font-size: 12px;
-  font-weight: 500;
+  font-weight: 600;
   line-height: 1;
   white-space: nowrap;
 }

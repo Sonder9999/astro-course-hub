@@ -121,8 +121,12 @@ function step(direction: number) {
 }
 
 function updateActiveIndex() {
-	let normalized = ((-targetRotY % 360) + 360) % 360;
-	activeIndex = Math.round(normalized / angleStep) % count;
+	const rot = isAutoRotate ? currentRotY : targetRotY;
+	let normalized = ((-rot % 360) + 360) % 360;
+	const newIdx = Math.round(normalized / angleStep) % count;
+	if (newIdx !== activeIndex) {
+		activeIndex = newIdx;
+	}
 }
 
 function snapToNearest() {
@@ -218,13 +222,29 @@ function onKeyDown(e: KeyboardEvent) {
 	if (e.key === " ") isAutoRotate = !isAutoRotate;
 }
 
+let lastAnimTime = 0;
+
 function animate() {
+	const now = performance.now();
+	if (lastAnimTime === 0) lastAnimTime = now;
+	const dt = Math.min(now - lastAnimTime, 100);
+	lastAnimTime = now;
+
 	if (isAutoRotate && !isHovered && !isDragging) {
-		targetRotY -= 0.12;
+		// 60fps 对应 0.12 deg/frame，采用 delta-time 保证任何刷新率下绝对匀速无抖动
+		const degPerSec = 7.2;
+		const deltaDeg = (degPerSec * dt) / 1000;
+		if (Math.abs(targetRotY - currentRotY) > 0.5) {
+			currentRotY += (targetRotY - currentRotY) * 0.085;
+		} else {
+			targetRotY -= deltaDeg;
+			currentRotY = targetRotY;
+		}
 		updateActiveIndex();
+	} else {
+		currentRotY += (targetRotY - currentRotY) * 0.085;
 	}
 
-	currentRotY += (targetRotY - currentRotY) * 0.085;
 	currentRotX += (targetRotX - currentRotX) * 0.085;
 
 	if (ringEl) {
@@ -247,6 +267,24 @@ onMount(() => {
 			}
 		});
 		resizeObserver.observe(stageEl);
+
+		// 并发预解码舞台内所有课程壁纸，彻底消除旋转到正面时的 Skia 解码掉帧
+		const imgs = Array.from(stageEl.querySelectorAll("img"));
+		Promise.all(
+			imgs.map((img) => {
+				if (img.complete) {
+					return img.decode().catch(() => {});
+				}
+				return new Promise((res) => {
+					img.addEventListener(
+						"load",
+						() => img.decode().then(res).catch(res),
+						{ once: true },
+					);
+					img.addEventListener("error", res, { once: true });
+				});
+			}),
+		).catch(() => {});
 	}
 
 	window.addEventListener("mousemove", onPointerMove);
@@ -354,7 +392,8 @@ onDestroy(() => {
                     <img
                       src={resolveSubjectCover(subId, meta.image)}
                       alt={meta.name}
-                      loading="lazy"
+                      loading="eager"
+                      decoding="async"
                       onerror={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
                     />
                   </div>
@@ -402,7 +441,8 @@ onDestroy(() => {
                     <img
                       src={resolveSubjectCover(subId, meta.image)}
                       alt={meta.name}
-                      loading="lazy"
+                      loading="eager"
+                      decoding="async"
                       onerror={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
                     />
                   </div>
