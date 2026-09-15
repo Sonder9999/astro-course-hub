@@ -38,6 +38,7 @@ interface Props {
 	ogImageAlt?: string;
 	postCategory?: string;
 	isCoursePage?: boolean;
+	hideCategoryBar?: boolean;
 	currentMajor?: string | string[];
 	headings?: MarkdownHeading[];
 	encrypted?: boolean;
@@ -66,6 +67,7 @@ const {
 	ogImageAlt,
 	postCategory,
 	isCoursePage,
+	hideCategoryBar = false,
 	currentMajor,
 	headings = [],
 	encrypted = false,
@@ -77,7 +79,7 @@ const isHomePageCheck = isHomePage(Astro.url.pathname);
 const isPostPage = !!postSlug;
 const isCourseView =
 	isCoursePage ?? (Astro.url.pathname.includes("/courses") || !!currentMajor);
-const shouldRenderCategoryBar = !!siteConfig.categoryBar;
+const shouldRenderCategoryBar = !!siteConfig.categoryBar && !hideCategoryBar;
 const navbarWidthFull = siteConfig.navbar.widthFull ?? false;
 
 const banner = getBannerVisibilityState({
@@ -153,7 +155,7 @@ const {
             {/* 主内容区包装器 - 包含静态栏位和swup容器，作为单个grid item */}
             <div class={staticBarClass}>
                 {/* 分类导航栏 - 课程页面渲染专属 CourseCategoryBar，其它页面渲染博客 CategoryBar */}
-                <div id="category-bar-wrapper" class="transition-swup-fade">
+                <div id="category-bar-wrapper" class:list={["transition-swup-fade", { hidden: !shouldRenderCategoryBar }]}>
                     {shouldRenderCategoryBar && (
                         isCourseView ? (
                             <CourseCategoryBar currentMajor={currentMajor} />

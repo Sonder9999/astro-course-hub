@@ -16,7 +16,7 @@ const initialTree = scanMergedDirectory(
 const heading = "课程";
 ---
 
-<MainGridLayout title="课程" description="课程资源导航" heading={heading} isCoursePage={true}>
+<MainGridLayout title="课程" description="课程资源导航" heading={heading} isCoursePage={true} hideCategoryBar={true}>
   <div class="mb-6 onload-animation">
     <CourseDashboard
       client:load
