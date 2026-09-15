@@ -83,6 +83,14 @@ export { fontConfig, fontsList } from "./fontConfig"; // 字体配置
 export { footerConfig } from "./footerConfig"; // 页脚配置
 export { friendsPageConfig, getEnabledFriends } from "./friendsConfig"; // 友链配置
 export { galleryConfig } from "./galleryConfig"; // 相册配置
+export {
+	getAllMajors,
+	getCollegeByMajor,
+	getColleges,
+	getHierarchyNode,
+	getMajorsByCollege,
+	hierarchyNodes,
+} from "./hierarchyConfig";
 export { licenseConfig } from "./licenseConfig"; // 许可证配置
 export { mapConfig } from "./mapConfig"; // 地图页面配置
 // 组件配置
@@ -97,11 +105,12 @@ export { sidebarLayoutConfig } from "./sidebarConfig"; // 侧边栏布局配置
 // 核心配置
 export { siteConfig } from "./siteConfig"; // 站点基础配置
 export { sponsorConfig } from "./sponsorConfig"; // 打赏配置
-// 课程与学科知识体系配置
 export {
 	courseCoverConfig,
 	getCourseCover,
+	getSemesterGroupsByMajor,
 	getSubjectMeta,
+	majorSemesterGroups,
 	SEMESTER_GROUPS,
 	SUBJECT_METAS,
 	semesterGroups,

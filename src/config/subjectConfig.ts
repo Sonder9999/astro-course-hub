@@ -257,6 +257,8 @@ export const subjectMetas: Record<string, SubjectMeta> = {
 		id: "Computer-Network",
 		name: "计算机网络",
 		category: "专业核心课",
+		majors: ["cs", "se"],
+		semester: "大三上",
 		gradient: "linear-gradient(135deg, #0284c7, #38bdf8, #7dd3fc)",
 		image: getCourseCover("Computer-Network"),
 		description: "分层体系结构、TCP/IP 协议栈、路由算法与网络安全体系",
@@ -292,6 +294,8 @@ export const subjectMetas: Record<string, SubjectMeta> = {
 		id: "Computer-Ethics",
 		name: "计算机伦理学",
 		category: "通识教育课",
+		majors: ["cs"],
+		semester: "大三下",
 		gradient: "linear-gradient(135deg, #7c3aed, #a78bfa, #6d28d9)",
 		image: getCourseCover("Computer-Ethics"),
 		description: "工程伦理规范、人工智能与深度伪造伦理治理、知识产权与案例分析",
@@ -299,7 +303,97 @@ export const subjectMetas: Record<string, SubjectMeta> = {
 		remoteBranch: "main",
 		remoteExclude: ["LICENSE"],
 	},
+
+	// --- 软件工程学院核心基础课与共享课程 ---
+	"Higher-Mathematics": {
+		id: "Higher-Mathematics",
+		name: "高等数学",
+		category: "学科基础课",
+		majors: ["cs", "se"], // 计科与软工共享！
+		semester: "大一上",
+		gradient: "linear-gradient(135deg, #0284c7, #38bdf8, #0ea5e9)",
+		image: getCourseCover("Higher-Mathematics"),
+		description: "极限与连续、一元微分与积分学、微分方程与向量空间代数基础",
+	},
+	"Principles-of-Computer-Organization": {
+		id: "Principles-of-Computer-Organization",
+		name: "计算机组成原理",
+		category: "专业核心课",
+		majors: ["cs", "se"], // 计科与软工共享！
+		semester: "大三上",
+		gradient: "linear-gradient(135deg, #059669, #10b981, #34d399)",
+		image: getCourseCover("Principles-of-Computer-Organization"),
+		description: "计算机硬件体系架构、指令系统、运算器、控制器与存储总线设计",
+		remoteRepo:
+			"https://github.com/Henu-Kaguya/Principles-of-Computer-Organization.git",
+		remoteBranch: "main",
+		remoteExclude: ["LICENSE"],
+	},
+
+	// --- 与学院同级别的独立科目 / 国际认证 ---
+	TOEFL: {
+		id: "TOEFL",
+		name: "TOEFL 托福备考",
+		category: "语言认证",
+		majors: ["toefl"],
+		semester: "专项备考",
+		gradient: "linear-gradient(135deg, #0284c7, #06b6d4, #38bdf8)",
+		image: getCourseCover("TOEFL"),
+		description:
+			"托福备战方法论、分类题型精析、长难句拆解、分类词汇与真题模考体系",
+		remoteRepo: "https://github.com/Sonder9999/TOEFL.git",
+		remoteBranch: "main",
+		remoteExclude: ["LICENSE"],
+	},
 };
+
+/**
+ * 各专业专属学期/分类轮盘配置 (Major-specific Semester Groups)
+ *
+ * 软件工程专业专属要求：轮盘仅标注大一上、大三上两个学期。
+ */
+export const majorSemesterGroups: Record<string, SemesterGroup[]> = {
+	// 软件工程专业专属轮盘：按要求仅标注大一上、大三上
+	se: [
+		{
+			id: "y1s1",
+			name: "大一上",
+			enName: "Year 1 Fall",
+			subTitle: "工程数学与学科基础",
+			themeColor: "#3b82f6",
+			subjectIds: ["Higher-Mathematics"],
+		},
+		{
+			id: "y3s1",
+			name: "大三上",
+			enName: "Year 3 Fall",
+			subTitle: "系统核心与网络架构",
+			themeColor: "#8b5cf6",
+			subjectIds: ["Computer-Network", "Principles-of-Computer-Organization"],
+		},
+	],
+	// TOEFL 专属轮盘
+	toefl: [
+		{
+			id: "all",
+			name: "托福备战",
+			enName: "TOEFL Prep",
+			subTitle: "真题模考、题型精析与分类词汇",
+			themeColor: "#06b6d4",
+			subjectIds: ["TOEFL"],
+		},
+	],
+};
+
+/**
+ * 获取指定专业对应的轮盘大组配置
+ */
+export function getSemesterGroupsByMajor(majorId?: string): SemesterGroup[] {
+	if (majorId && majorSemesterGroups[majorId]) {
+		return majorSemesterGroups[majorId];
+	}
+	return semesterGroups;
+}
 
 /**
  * 完整学科体系配置主体
@@ -329,6 +423,7 @@ export function getSubjectMeta(dirName: string): SubjectMeta {
 			...subjectMetas[dirName],
 			image: subjectMetas[dirName].image || getCourseCover(dirName),
 			semester: subjectMetas[dirName].semester || semester,
+			majors: subjectMetas[dirName].majors || ["cs"],
 		};
 	}
 
@@ -337,6 +432,7 @@ export function getSubjectMeta(dirName: string): SubjectMeta {
 		id: dirName,
 		name: dirName.replace(/[-_]/g, " "),
 		category: "专业课",
+		majors: ["cs"],
 		gradient: "linear-gradient(135deg, #374151, #4b5563, #1f2937)",
 		image: getCourseCover(dirName),
 		description: "课程笔记、资料与指导文档",

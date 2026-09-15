@@ -161,17 +161,37 @@ export async function getCourseCategories(): Promise<CountItem[]> {
  * 仅保留实际课程数 > 0 的学科/专业；若某学科没有课程，则不显示；
  * 如果存在“公共课”，优先置前；配置文件中声明的专业（若有实际课程）优先按配置顺序排；其余动态学科按数量降序排
  */
+import { getCourseArchiveListData } from "./course-archive";
+
 export async function getCourseMajors(): Promise<CountItem[]> {
 	const courses = await getSortedCourses();
+	const archiveCourses = getCourseArchiveListData();
 	const countMap = new Map<string, number>();
 
-	for (const c of courses) {
-		const rawMajor = c.data.major;
-		const majors = Array.isArray(rawMajor) ? rawMajor : [rawMajor || "公共课"];
-		for (const m of majors) {
-			const trimmed = typeof m === "string" ? m.trim() : String(m).trim();
-			if (trimmed) {
-				countMap.set(trimmed, (countMap.get(trimmed) || 0) + 1);
+	if (courses.length > 0) {
+		for (const c of courses) {
+			const rawMajor = c.data.major;
+			const majors = Array.isArray(rawMajor)
+				? rawMajor
+				: [rawMajor || "公共课"];
+			for (const m of majors) {
+				const trimmed = typeof m === "string" ? m.trim() : String(m).trim();
+				if (trimmed) {
+					countMap.set(trimmed, (countMap.get(trimmed) || 0) + 1);
+				}
+			}
+		}
+	} else {
+		for (const c of archiveCourses) {
+			const rawMajor = c.major;
+			const majors = Array.isArray(rawMajor)
+				? rawMajor
+				: [rawMajor || "公共课"];
+			for (const m of majors) {
+				const trimmed = typeof m === "string" ? m.trim() : String(m).trim();
+				if (trimmed && trimmed !== "cs" && trimmed !== "se") {
+					countMap.set(trimmed, (countMap.get(trimmed) || 0) + 1);
+				}
 			}
 		}
 	}

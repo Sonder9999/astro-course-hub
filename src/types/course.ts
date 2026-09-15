@@ -44,10 +44,52 @@ export type CourseCategoryConfig = {
 export type CourseMajorConfig = {
 	id?: string;
 	name: string;
+	collegeId?: string;
 	color?: string;
 	badgeColor?: string;
 	description?: string;
+	isStandalone?: boolean;
 };
+
+/**
+ * 通用层级节点定义（支持学院、专业、独立无挂载实体）
+ */
+export interface HierarchyNode {
+	id: string; // 唯一标识，如 "cs-college", "se-college", "toefl", "cs", "se"
+	name: string; // 显示名称，如 "计算机与信息工程学院", "软件工程学院", "TOEFL"
+	level: "college" | "major"; // 节点层级
+	parentId?: string; // 父节点 ID (留空表示顶层根节点或独立无挂载)
+	shortName?: string;
+	description?: string;
+	color?: string; // 主题色
+	badge?: string; // 角标徽章，如 "语言认证", "核心学院"
+	icon?: string;
+	image?: string;
+	order?: number;
+}
+
+/**
+ * 3D 轮盘通用卡片数据项定义（解耦 Carousel3D，支持学院、专业、学期轮盘）
+ */
+export interface CarouselCardItem {
+	id: string; // 唯一标识 (例如 "cs-college", "cs", "y1s1")
+	name: string; // 主标题
+	enName?: string; // 英文副标题
+	subTitle?: string; // 详细副标题/简介
+	themeColor: string; // 主题颜色
+	image?: string; // 卡片壁纸
+	badge?: string; // 徽标角标 (如 "12门课程")
+	url?: string; // 点击跳转路径
+	children?: Array<{
+		id: string;
+		name: string;
+		category?: string;
+		description?: string;
+		image?: string;
+		badge?: string;
+		url?: string;
+	}>;
+}
 
 /**
  * 课程封面壁纸配置定义
@@ -77,11 +119,13 @@ export interface SubjectMeta {
 	id: string; // 文件夹名/学科ID
 	name: string; // 中文显示名
 	category: string; // 分类标签
+	majors?: string[]; // 关联的专业 ID 列表，例如 ["cs", "se"]
 	icon?: string; // 徽标或图标标识 (可选)
 	gradient: string; // 渐变背景兜底
 	image: string; // 视觉卡片配图
 	description: string; // 课程简介
 	semester?: string; // 对应开课学期
+	semestersByMajor?: Record<string, string>; // 针对不同专业可能不同的学期归属
 
 	// 远程仓库配置 (可选, 留空则视为纯本地学科)
 	/** 远程 Git 仓库 URL (HTTPS), 留空则视为纯本地学科 */

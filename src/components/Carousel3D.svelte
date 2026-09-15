@@ -6,34 +6,72 @@ import {
 	getSubjectMeta,
 	semesterGroups,
 } from "@/config/subjectConfig";
-import type { SemesterGroup, TreeNode } from "@/types/course";
+import type { CarouselCardItem, SemesterGroup, TreeNode } from "@/types/course";
 
 const refreshSeed = typeof window !== "undefined" ? Date.now() : "";
 
-function resolveSubjectCover(subId: string, defaultImage: string): string {
+function resolveSubjectCover(subId: string, defaultImage?: string): string {
 	if (defaultImage && !defaultImage.includes("t.alcy.cc")) {
 		return defaultImage;
 	}
 	return getCourseCover(subId, refreshSeed);
 }
 
+interface Props {
+	tree?: TreeNode[];
+	accordionMode?: "continuous" | "independent";
+	semesters?: SemesterGroup[];
+	cards?: CarouselCardItem[];
+	cardActionLabel?: string;
+	onSelectSubject?: (subject: TreeNode) => void;
+	onSelectCard?: (card: CarouselCardItem) => void;
+	onSelectCardItem?: (item: any, card: CarouselCardItem) => void;
+}
+
 let {
 	tree = [],
 	accordionMode = "continuous", // "continuous" | "independent"
+	semesters,
+	cards,
+	cardActionLabel = "点击进入 →",
 	onSelectSubject,
-}: {
-	tree: TreeNode[];
-	accordionMode: "continuous" | "independent";
-	onSelectSubject: (subject: TreeNode) => void;
-} = $props();
+	onSelectCard,
+	onSelectCardItem,
+}: Props = $props();
 
 function getSubjectNode(id: string): TreeNode | undefined {
 	return tree.find((n) => n.name === id);
 }
 
-const semesters: SemesterGroup[] = semesterGroups;
-const count = semesters.length;
-const angleStep = 360 / count;
+// 统一泛型卡片数据源：支持直接传入 cards (学院/专业轮盘)，亦支持兼容传入 semesters (课程学期轮盘)
+let effectiveCards = $derived.by<CarouselCardItem[]>(() => {
+	if (cards && cards.length > 0) {
+		return cards;
+	}
+	const baseSemesters =
+		semesters && semesters.length > 0 ? semesters : semesterGroups;
+	return baseSemesters.map((sem) => ({
+		id: sem.id,
+		name: sem.name,
+		enName: sem.enName,
+		subTitle: sem.subTitle,
+		themeColor: sem.themeColor,
+		badge: `${sem.subjectIds.length}门课程`,
+		children: sem.subjectIds.map((subId) => {
+			const meta = getSubjectMeta(subId);
+			return {
+				id: subId,
+				name: meta.name,
+				category: meta.category,
+				description: meta.description,
+				image: resolveSubjectCover(subId, meta.image),
+			};
+		}),
+	}));
+});
+
+let count = $derived(effectiveCards.length || 1);
+let angleStep = $derived(360 / Math.max(count, 1));
 
 // 舞台宽度与元素引用
 let stageWidth = $state(740);
@@ -60,10 +98,13 @@ let cardHeight = $derived(
 			: 420,
 );
 
-const rad = Math.PI / count; // 30 deg
-let ringRadius = $derived(
-	Math.round(cardWidth / 2 / Math.tan(rad)) + (isMobile ? 16 : 25),
-);
+let ringRadius = $derived.by(() => {
+	if (count <= 2) {
+		return Math.round(cardWidth * 0.65) + (isMobile ? 20 : 50);
+	}
+	const computed = Math.round(cardWidth / 2 / Math.tan(Math.PI / count));
+	return Math.max(Math.round(cardWidth * 0.6), computed) + (isMobile ? 16 : 25);
+});
 
 let stageHeight = $derived(isMobile ? cardHeight + 60 : 540);
 
@@ -97,6 +138,18 @@ $effect(() => {
 		prevActiveIndex = activeIndex;
 		activeTouchSubject = null;
 	}
+});
+
+let prevCardKeys = "";
+$effect(() => {
+	const currentKeys = effectiveCards.map((c) => c.id).join(",");
+	if (prevCardKeys && prevCardKeys !== currentKeys) {
+		targetRotY = 0;
+		currentRotY = 0;
+		activeIndex = 0;
+		activeTouchSubject = null;
+	}
+	prevCardKeys = currentKeys;
 });
 
 let ringEl: HTMLDivElement | null = null;
@@ -329,211 +382,270 @@ onDestroy(() => {
       bind:this={ringEl}
       style="--ring-radius: {ringRadius}px; --card-width: {cardWidth}px; --card-height: {cardHeight}px;"
     >
-      {#each semesters as sem, semIdx}
-        {@const isActive = activeIndex === semIdx}
-        {@const angle = semIdx * angleStep}
+      {#each effectiveCards as card, cardIdx}
+        {@const isActive = activeIndex === cardIdx}
+        {@const angle = cardIdx * angleStep}
+        {@const hasChildren = card.children && card.children.length > 0}
 
         <div
           class="semester-card-item {accordionMode} {isActive ? 'active' : 'inactive'}"
           style="transform: rotateY({angle}deg) translateZ({ringRadius}px);"
           onclick={() => {
             if (hasDragged) return;
-            if (!isActive) rotateToSemester(semIdx);
+            if (!isActive) {
+              rotateToSemester(cardIdx);
+            } else if (onSelectCard && !hasChildren) {
+              onSelectCard(card);
+            }
           }}
           role="group"
-          aria-label={sem.name}
+          aria-label={card.name}
         >
-          <!-- 学期内嵌手风琴展示区 -->
+          <!-- 内嵌手风琴或卡片展示区 -->
           <div class="accordion-body {accordionMode}">
-            {#each sem.subjectIds as subId, subIdx}
-              {@const subNode = getSubjectNode(subId)}
-              {@const meta = getSubjectMeta(subId)}
-              {@const hasMultipleSubjects = sem.subjectIds.length > 1}
-              {@const isTouchExpanded = isMobile && (!hasMultipleSubjects || (activeTouchSubject && sem.subjectIds.includes(activeTouchSubject) ? activeTouchSubject === subId : subIdx === 0))}
-              {@const targetSubjectNode = subNode || {
-                name: subId,
-                path: subId,
-                isDirectory: true,
-                children: [],
-              }}
+            {#if hasChildren && card.children}
+              {#each card.children as item, itemIdx}
+                {@const subNode = getSubjectNode(item.id)}
+                {@const meta = getSubjectMeta(item.id)}
+                {@const hasMultipleSubjects = card.children.length > 1}
+                {@const isTouchExpanded = isMobile && (!hasMultipleSubjects || (activeTouchSubject && card.children.map((c) => c.id).includes(activeTouchSubject) ? activeTouchSubject === item.id : itemIdx === 0))}
+                {@const targetSubjectNode = subNode || {
+                  name: item.id,
+                  path: item.id,
+                  isDirectory: true,
+                  children: [],
+                }}
+                {@const itemCover = item.image || resolveSubjectCover(item.id, meta.image)}
 
-              {#if accordionMode === 'independent'}
-                <!-- ================= 风格 1：独立卡片手风琴 (手风琴_独立.html) ================= -->
-                <div
-                  class="accordion-card independent-box {isTouchExpanded ? 'touch-expanded' : ''}"
-                  role="button"
-                  tabindex="0"
-                  onclick={(e) => {
-                    e.stopPropagation();
-                    if (hasDragged) return;
-                    if (!isActive) {
-                      rotateToSemester(semIdx);
-                      return;
-                    }
-                    if (isMobile && hasMultipleSubjects) {
-                      if (!isTouchExpanded) {
-                        activeTouchSubject = subId;
-                        return;
-                      }
-                    }
-                    onSelectSubject(targetSubjectNode);
-                  }}
-                  onkeydown={(e) => {
-                    if (e.key === 'Enter') {
+                {#if accordionMode === 'independent'}
+                  <!-- 风格 1：独立卡片手风琴 -->
+                  <div
+                    class="accordion-card independent-box {isTouchExpanded ? 'touch-expanded' : ''}"
+                    role="button"
+                    tabindex="0"
+                    onclick={(e) => {
+                      e.stopPropagation();
+                      if (hasDragged) return;
                       if (!isActive) {
-                        rotateToSemester(semIdx);
+                        rotateToSemester(cardIdx);
                         return;
                       }
-                      onSelectSubject(targetSubjectNode);
-                    }
-                  }}
-                >
-                  <div class="independent-img-box" style="background: {meta.gradient};">
-                    <img
-                      src={resolveSubjectCover(subId, meta.image)}
-                      alt={meta.name}
-                      loading="eager"
-                      decoding="async"
-                      onerror={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
-                    />
-                  </div>
-
-                  <!-- 独立版底部标题区 -->
-                  <div class="independent-caption">
-                    <div class="ind-title">{meta.name}</div>
-                    {#if meta.description}
-                      <div class="ind-desc">{meta.description}</div>
-                    {/if}
-                  </div>
-                </div>
-              {:else}
-                <!-- ================= 风格 2：连续无缝手风琴 (手风琴_连续.html) ================= -->
-                <div
-                  class="accordion-card continuous-item {isTouchExpanded ? 'touch-expanded' : ''}"
-                  role="button"
-                  tabindex="0"
-                  onclick={(e) => {
-                    e.stopPropagation();
-                    if (hasDragged) return;
-                    if (!isActive) {
-                      rotateToSemester(semIdx);
-                      return;
-                    }
-                    if (isMobile && hasMultipleSubjects) {
-                      if (!isTouchExpanded) {
-                        activeTouchSubject = subId;
-                        return;
+                      if (isMobile && hasMultipleSubjects) {
+                        if (!isTouchExpanded) {
+                          activeTouchSubject = item.id;
+                          return;
+                        }
                       }
-                    }
-                    onSelectSubject(targetSubjectNode);
-                  }}
-                  onkeydown={(e) => {
-                    if (e.key === 'Enter') {
-                      if (!isActive) {
-                        rotateToSemester(semIdx);
-                        return;
+                      if (onSelectCardItem) {
+                        onSelectCardItem(item, card);
+                      } else if (onSelectSubject) {
+                        onSelectSubject(targetSubjectNode);
                       }
-                      onSelectSubject(targetSubjectNode);
-                    }
-                  }}
-                >
-                  <div class="continuous-bg" style="background: {meta.gradient};">
-                    <img
-                      src={resolveSubjectCover(subId, meta.image)}
-                      alt={meta.name}
-                      loading="eager"
-                      decoding="async"
-                      onerror={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
-                    />
-                  </div>
-
-                  <!-- 连续版遮罩及文字层 -->
-                  <div class="continuous-overlay">
-                    <div class="overlay-bottom">
-                      <h3 class="subject-name">{meta.name}</h3>
-                      {#if meta.description}
-                        <p class="subject-desc">{meta.description}</p>
-                      {/if}
-                      <div
-                        class="enter-btn"
-                        role="button"
-                        tabindex="0"
-                        onclick={(e) => {
-                          e.stopPropagation();
-                          if (hasDragged) return;
-                          if (!isActive) {
-                            rotateToSemester(semIdx);
-                            return;
-                          }
+                    }}
+                    onkeydown={(e) => {
+                      if (e.key === 'Enter') {
+                        if (!isActive) {
+                          rotateToSemester(cardIdx);
+                          return;
+                        }
+                        if (onSelectCardItem) {
+                          onSelectCardItem(item, card);
+                        } else if (onSelectSubject) {
                           onSelectSubject(targetSubjectNode);
-                        }}
-                        onkeydown={(e) => {
-                          if (e.key === 'Enter') {
+                        }
+                      }
+                    }}
+                  >
+                    <div class="independent-img-box" style="background: {card.themeColor || meta.gradient};">
+                      <img
+                        src={itemCover}
+                        alt={item.name}
+                        loading="eager"
+                        decoding="async"
+                        onerror={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                      />
+                    </div>
+
+                    <div class="independent-caption">
+                      <div class="ind-title">{item.name}</div>
+                      {#if item.description || meta.description}
+                        <div class="ind-desc">{item.description || meta.description}</div>
+                      {/if}
+                    </div>
+                  </div>
+                {:else}
+                  <!-- 风格 2：连续无缝手风琴 -->
+                  <div
+                    class="accordion-card continuous-item {isTouchExpanded ? 'touch-expanded' : ''}"
+                    role="button"
+                    tabindex="0"
+                    onclick={(e) => {
+                      e.stopPropagation();
+                      if (hasDragged) return;
+                      if (!isActive) {
+                        rotateToSemester(cardIdx);
+                        return;
+                      }
+                      if (isMobile && hasMultipleSubjects) {
+                        if (!isTouchExpanded) {
+                          activeTouchSubject = item.id;
+                          return;
+                        }
+                      }
+                      if (onSelectCardItem) {
+                        onSelectCardItem(item, card);
+                      } else if (onSelectSubject) {
+                        onSelectSubject(targetSubjectNode);
+                      }
+                    }}
+                    onkeydown={(e) => {
+                      if (e.key === 'Enter') {
+                        if (!isActive) {
+                          rotateToSemester(cardIdx);
+                          return;
+                        }
+                        if (onSelectCardItem) {
+                          onSelectCardItem(item, card);
+                        } else if (onSelectSubject) {
+                          onSelectSubject(targetSubjectNode);
+                        }
+                      }
+                    }}
+                  >
+                    <div class="continuous-bg" style="background: {card.themeColor || meta.gradient};">
+                      <img
+                        src={itemCover}
+                        alt={item.name}
+                        loading="eager"
+                        decoding="async"
+                        onerror={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                      />
+                    </div>
+
+                    <div class="continuous-overlay">
+                      <div class="overlay-bottom">
+                        <h3 class="subject-name">{item.name}</h3>
+                        {#if item.description || meta.description}
+                          <p class="subject-desc">{item.description || meta.description}</p>
+                        {/if}
+                        <div
+                          class="enter-btn"
+                          role="button"
+                          tabindex="0"
+                          onclick={(e) => {
                             e.stopPropagation();
-                            onSelectSubject(targetSubjectNode);
-                          }
-                        }}
-                      >
-                        点击进入阅读 →
+                            if (hasDragged) return;
+                            if (!isActive) {
+                              rotateToSemester(cardIdx);
+                              return;
+                            }
+                            if (onSelectCardItem) {
+                              onSelectCardItem(item, card);
+                            } else if (onSelectSubject) {
+                              onSelectSubject(targetSubjectNode);
+                            }
+                          }}
+                        >
+                          {cardActionLabel}
+                        </div>
                       </div>
                     </div>
                   </div>
+                {/if}
+              {/each}
+            {:else}
+              <!-- 独立整卡展示 (无子项或单实体卡片) -->
+              <div
+                class="accordion-card continuous-item active"
+                role="button"
+                tabindex="0"
+                onclick={(e) => {
+                  e.stopPropagation();
+                  if (hasDragged) return;
+                  if (!isActive) {
+                    rotateToSemester(cardIdx);
+                    return;
+                  }
+                  if (onSelectCard) onSelectCard(card);
+                }}
+              >
+                <div class="continuous-bg" style="background: {card.themeColor};">
+                  <img
+                    src={card.image || getCourseCover(card.id, refreshSeed)}
+                    alt={card.name}
+                    loading="eager"
+                    decoding="async"
+                    onerror={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                  />
                 </div>
-              {/if}
-            {/each}
+                <div class="continuous-overlay">
+                  <div class="overlay-bottom">
+                    <h3 class="subject-name text-lg font-bold">{card.name}</h3>
+                    {#if card.subTitle}
+                      <p class="subject-desc">{card.subTitle}</p>
+                    {/if}
+                    <div class="enter-btn">
+                      {cardActionLabel}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            {/if}
           </div>
         </div>
       {/each}
     </div>
   </div>
 
-  <!-- 底部控制器 (独立位于 3D 舞台下方，与卡片物理分离，适配 Firefly 主题色) -->
-  <div class="control-bar-wrapper">
-    <div class="control-bar">
-      <button class="ctrl-btn" onclick={() => step(1)} title="上一学期 (←)" aria-label="上一学期">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-          <polyline points="15 18 9 12 15 6"></polyline>
-        </svg>
-      </button>
-
-      <button
-        class="ctrl-btn play-btn {isAutoRotate ? 'active' : ''}"
-        onclick={() => (isAutoRotate = !isAutoRotate)}
-        title={isAutoRotate ? "暂停自动漫游 (空格)" : "开启自动漫游 (空格)"}
-        aria-label="自动漫游开关"
-      >
-        {#if isAutoRotate}
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-            <rect x="6" y="4" width="4" height="16" rx="1.5"></rect>
-            <rect x="14" y="4" width="4" height="16" rx="1.5"></rect>
+  <!-- 底部控制器 (仅在卡片数量大于1时展示切换控件) -->
+  {#if count > 1}
+    <div class="control-bar-wrapper">
+      <div class="control-bar">
+        <button class="ctrl-btn" onclick={() => step(1)} title="上一项 (←)" aria-label="上一项">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="15 18 9 12 15 6"></polyline>
           </svg>
-        {:else}
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-            <polygon points="5 3 19 12 5 21 5 3"></polygon>
-          </svg>
-        {/if}
-      </button>
+        </button>
 
-      <!-- 6个学期指示胶囊 -->
-      <div class="dots-container">
-        {#each semesters as sem, idx}
-          <div
-            class="dot {activeIndex === idx ? 'active' : ''}"
-            onclick={() => rotateToSemester(idx)}
-            role="button"
-            tabindex="0"
-            onkeydown={(e) => { if (e.key === 'Enter') rotateToSemester(idx); }}
-          >
-            <span class="dot-text">{sem.name.split("·")[0].trim()}</span>
-          </div>
-        {/each}
+        <button
+          class="ctrl-btn play-btn {isAutoRotate ? 'active' : ''}"
+          onclick={() => (isAutoRotate = !isAutoRotate)}
+          title={isAutoRotate ? "暂停自动漫游 (空格)" : "开启自动漫游 (空格)"}
+          aria-label="自动漫游开关"
+        >
+          {#if isAutoRotate}
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+              <rect x="6" y="4" width="4" height="16" rx="1.5"></rect>
+              <rect x="14" y="4" width="4" height="16" rx="1.5"></rect>
+            </svg>
+          {:else}
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+              <polygon points="5 3 19 12 5 21 5 3"></polygon>
+            </svg>
+          {/if}
+        </button>
+
+        <!-- 轮盘指示胶囊 -->
+        <div class="dots-container">
+          {#each effectiveCards as card, idx}
+            <div
+              class="dot {activeIndex === idx ? 'active' : ''}"
+              onclick={() => rotateToSemester(idx)}
+              role="button"
+              tabindex="0"
+              onkeydown={(e) => { if (e.key === 'Enter') rotateToSemester(idx); }}
+            >
+              <span class="dot-text">{card.name.split("·")[0].trim()}</span>
+            </div>
+          {/each}
+        </div>
+
+        <button class="ctrl-btn" onclick={() => step(-1)} title="下一项 (→)" aria-label="下一项">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="9 18 15 12 9 6"></polyline>
+          </svg>
+        </button>
       </div>
-
-      <button class="ctrl-btn" onclick={() => step(-1)} title="下一学期 (→)" aria-label="下一学期">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-          <polyline points="9 18 15 12 9 6"></polyline>
-        </svg>
-      </button>
     </div>
-  </div>
+  {/if}
 </div>

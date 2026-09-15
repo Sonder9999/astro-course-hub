@@ -94,27 +94,34 @@ export const courseConfig: CourseSiteConfig = {
 	],
 	majors: [
 		{
+			id: "public",
 			name: "公共课",
 			description: "全校通识必修、数学物理等公共基础课",
 			color:
 				"bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border-indigo-500/30",
 		},
 		{
+			id: "cs",
 			name: "计算机科学与技术",
+			collegeId: "cs-college",
 			description: "计算机科学理论、系统结构与核心软件",
 			color: "bg-sky-500/15 text-sky-700 dark:text-sky-300 border-sky-500/30",
 		},
 		{
-			name: "人工智能",
-			description: "智能系统、前沿机器学习与数据算法",
-			color:
-				"bg-purple-500/15 text-purple-700 dark:text-purple-300 border-purple-500/30",
-		},
-		{
+			id: "se",
 			name: "软件工程",
+			collegeId: "se-college",
 			description: "大型工程架构、系统工程化开发与测试",
 			color:
-				"bg-teal-500/15 text-teal-700 dark:text-teal-300 border-teal-500/30",
+				"bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30",
+		},
+		{
+			id: "toefl",
+			name: "TOEFL",
+			isStandalone: true,
+			description: "托福语言考试备考方法论、分类题型精解与核心词汇真题",
+			color:
+				"bg-cyan-500/15 text-cyan-700 dark:text-cyan-300 border-cyan-500/30",
 		},
 	],
 	categories: [
