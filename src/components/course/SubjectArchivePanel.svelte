@@ -321,6 +321,15 @@ function handleFileClick(file: FlatFileItem) {
 		selectedFileToast = null;
 	}, 2800);
 }
+
+// 胶囊栏左右滑动控制
+let pillsScrollRef = $state<HTMLDivElement | null>(null);
+
+function scrollPills(delta: number) {
+	if (pillsScrollRef) {
+		pillsScrollRef.scrollBy({ left: delta, behavior: "smooth" });
+	}
+}
 </script>
 
 <div class="subject-archive-root flex flex-col gap-4">
@@ -423,13 +432,36 @@ function handleFileClick(file: FlatFileItem) {
     </div>
   </div>
 
-  <!-- ================= 分类胶囊栏 (Firefly CategoryBar 样式，无 Emoji，采用原文件夹名) ================= -->
+  <!-- ================= 分类胶囊栏 (带左右翻页箭头) ================= -->
   {#if categoryPills.length > 1}
-    <div class="card-base p-3 rounded-2xl border border-black/5 dark:border-white/5 overflow-hidden">
-      <div class="flex items-center gap-2 overflow-x-auto scrollbar-none py-0.5 px-1">
+    <div class="card-base p-2 sm:p-2.5 rounded-2xl border border-black/5 dark:border-white/5 flex items-center gap-1.5 sm:gap-2">
+      <!-- 左箭头 -->
+      <button
+        type="button"
+        class="shrink-0 w-8 h-8 rounded-xl flex items-center justify-center bg-black/5 dark:bg-white/10 hover:bg-(--primary) hover:text-white text-black/60 dark:text-white/60 transition-colors cursor-pointer"
+        onclick={() => scrollPills(-260)}
+        title="向左滑动"
+        aria-label="向左滑动"
+      >
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7" />
+        </svg>
+      </button>
+
+      <!-- 胶囊横向滑动列表 -->
+      <div
+        bind:this={pillsScrollRef}
+        class="flex-1 min-w-0 flex items-center gap-2 overflow-x-auto scrollbar-none py-0.5 px-0.5 scroll-smooth"
+        onwheel={(e) => {
+          if (pillsScrollRef && Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+            pillsScrollRef.scrollLeft += e.deltaY;
+          }
+        }}
+      >
         {#each categoryPills as pill}
           {@const isActive = selectedCategory === pill.key}
           <button
+            type="button"
             class="category-pill text-sm px-3.5 py-1.5 shrink-0 transition-all duration-150 ease-out flex items-center justify-center cursor-pointer select-none"
             data-active={isActive ? "" : undefined}
             onclick={() => (selectedCategory = pill.key)}
@@ -439,6 +471,19 @@ function handleFileClick(file: FlatFileItem) {
           </button>
         {/each}
       </div>
+
+      <!-- 右箭头 -->
+      <button
+        type="button"
+        class="shrink-0 w-8 h-8 rounded-xl flex items-center justify-center bg-black/5 dark:bg-white/10 hover:bg-(--primary) hover:text-white text-black/60 dark:text-white/60 transition-colors cursor-pointer"
+        onclick={() => scrollPills(260)}
+        title="向右滑动"
+        aria-label="向右滑动"
+      >
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7" />
+        </svg>
+      </button>
     </div>
   {/if}
 
