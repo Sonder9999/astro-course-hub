@@ -67,7 +67,7 @@ const {
 	ogImageAlt,
 	postCategory,
 	isCoursePage,
-	hideCategoryBar = false,
+	hideCategoryBar,
 	currentMajor,
 	headings = [],
 	encrypted = false,
@@ -79,7 +79,9 @@ const isHomePageCheck = isHomePage(Astro.url.pathname);
 const isPostPage = !!postSlug;
 const isCourseView =
 	isCoursePage ?? (Astro.url.pathname.includes("/courses") || !!currentMajor);
-const shouldRenderCategoryBar = !!siteConfig.categoryBar && !hideCategoryBar;
+// 课程相关页面（课程大厅及具体课程文档页）默认不渲染顶部分类栏，其它页面根据 siteConfig 决定
+const effectiveHideCategoryBar = hideCategoryBar ?? isCourseView;
+const shouldRenderCategoryBar = !!siteConfig.categoryBar && !effectiveHideCategoryBar;
 const navbarWidthFull = siteConfig.navbar.widthFull ?? false;
 
 const banner = getBannerVisibilityState({
