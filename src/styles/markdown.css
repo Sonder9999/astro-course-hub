@@ -96,6 +96,59 @@
     }
   }
 
+  mark:not(.expressive-code *),
+  highlight {
+    @apply px-1.5 py-0.5 rounded-md;
+    background-color: color-mix(in srgb, var(--primary) 18%, transparent);
+    color: inherit;
+    box-decoration-break: clone;
+    -webkit-box-decoration-break: clone;
+    transition: background-color var(--duration-normal, 0.15s) var(--ease-standard, ease);
+
+    &.green {
+      background-color: color-mix(in srgb, #22c55e 20%, transparent);
+    }
+    &.blue {
+      background-color: color-mix(in srgb, #3b82f6 20%, transparent);
+    }
+    &.purple {
+      background-color: color-mix(in srgb, #a855f7 20%, transparent);
+    }
+    &.red {
+      background-color: color-mix(in srgb, #ef4444 20%, transparent);
+    }
+    &.orange {
+      background-color: color-mix(in srgb, #f97316 20%, transparent);
+    }
+    &.yellow {
+      background-color: color-mix(in srgb, #eab308 25%, transparent);
+    }
+  }
+
+  :root.dark & mark:not(.expressive-code *),
+  :root.dark & highlight {
+    background-color: color-mix(in srgb, var(--primary) 26%, transparent);
+
+    &.green {
+      background-color: color-mix(in srgb, #22c55e 26%, transparent);
+    }
+    &.blue {
+      background-color: color-mix(in srgb, #3b82f6 26%, transparent);
+    }
+    &.purple {
+      background-color: color-mix(in srgb, #a855f7 26%, transparent);
+    }
+    &.red {
+      background-color: color-mix(in srgb, #ef4444 26%, transparent);
+    }
+    &.orange {
+      background-color: color-mix(in srgb, #f97316 26%, transparent);
+    }
+    &.yellow {
+      background-color: color-mix(in srgb, #eab308 26%, transparent);
+    }
+  }
+
   .expressive-code {
     @apply my-4;
   }

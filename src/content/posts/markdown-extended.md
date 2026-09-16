@@ -255,6 +255,32 @@ export const siteConfig: SiteConfig = {
 内容 :spoiler[被隐藏了 **哈哈**]！
 ```
 
+## 文本高亮 (Text Highlight)
+
+您可以为重点文本添加高亮标记，高亮背景色会自动跟随站点主题色（`--primary`）并自适应亮暗色模式：
+
+- 支持使用指令语法 `:mark[高亮内容]` 或原生 HTML 标签 `<mark>高亮内容</mark>`；
+- 还支持可选的语义颜色类名，例如 `:mark{.green}[绿色]`、`:mark{.blue}[蓝色]`、`:mark{.purple}[紫色]`、`:mark{.red}[红色]`、`:mark{.orange}[橙色]`、`:mark{.yellow}[柔和暖黄]`。
+
+**示例效果：**
+
+这是默认的 :mark[跟随站点主题色高亮] 文本。
+
+也可以指定彩色标记：:mark{.green}[通过 (绿色)]、:mark{.blue}[提示 (蓝色)]、:mark{.purple}[重点 (紫色)]、:mark{.red}[错误 (红色)]、:mark{.orange}[警告 (橙色)]、:mark{.yellow}[暖黄 (黄色)]。
+
+```markdown
+这是默认的 :mark[跟随站点主题色高亮] 文本。
+也可以使用原生标签：<mark>跟随主题色高亮</mark>。
+
+带颜色的高亮指令：
+:mark{.green}[通过 (绿色)]
+:mark{.blue}[提示 (蓝色)]
+:mark{.purple}[重点 (紫色)]
+:mark{.red}[错误 (红色)]
+:mark{.orange}[警告 (橙色)]
+:mark{.yellow}[暖黄 (黄色)]
+```
+
 ## 图片画廊网格 (Image Grid)
 
 您可以使用 `[grid]` 和 `[/grid]` 标签将多张图片纵向并排展示。这对于展示照片画廊或对比图非常有用。系统会自动根据包裹在其中的图片数量（最多支持并排展示4张）以响应式网格进行布局。
